@@ -1,76 +1,172 @@
 # Smart Emergency Response System
 
-A Smart Emergency Response System developed in C++ using Data Structures and Object-Oriented Programming (OOP) concepts to manage and respond to emergency situations efficiently.
+A Smart Emergency Response System designed using C++, Data Structures and Object-Oriented Programming concepts to organize emergency requests, prioritize incidents, manage emergency resources and determine efficient routes.
 
 ## Problem Statement
 
-In emergency situations, quick and organized handling of information and resources is important. Traditional approaches may make it difficult to manage emergency requests, prioritize responses, and maintain information efficiently.
+Emergency situations such as road accidents, fires and medical incidents may occur simultaneously while available emergency resources are limited.
 
-This project aims to develop a Smart Emergency Response System using DSA and OOP concepts in C++.
+Manual decision-making can make it difficult to:
+
+- Decide which emergency should be handled first.
+- Select the most suitable available resource.
+- Find an efficient route to the emergency location.
+- Manage multiple emergency requests simultaneously.
+
+The proposed system uses an algorithm-based approach to make emergency prioritization, resource allocation and route selection more systematic.
 
 ## Objectives
 
-* To develop a structured emergency response system using C++.
-* To apply Data Structures in managing emergency-related information.
-* To use OOP concepts for modular and organized program development.
-* To improve the handling and management of emergency requests.
+1. Develop an emergency reporting and management system.
+2. Categorize emergencies according to severity.
+3. Prioritize emergencies using a Priority Queue / Heap.
+4. Represent the city road network using a weighted Graph.
+5. Calculate shortest routes using Dijkstra's Algorithm.
+6. Manage ambulances and other emergency resources.
+7. Apply searching and sorting techniques for data management.
+8. Apply Object-Oriented Programming concepts using C++.
+9. Develop a menu-driven C++ prototype.
+10. Test the system using different emergency and resource scenarios.
+
+## Proposed Features / Modules
+
+- Emergency Management
+- Emergency Data Collection and Validation
+- Severity-Based Emergency Prioritization
+- Priority Queue / Heap
+- Ambulance and Resource Management
+- Graph-based Road Network
+- Dijkstra's Shortest Path Algorithm
+- Resource Dispatch
+- Response Status Tracking
+- Searching and Sorting
+
+## System Workflow
+
+**Emergency Input → Emergency Management → Priority Queue & Severity → Resource Management → Graph Locations → Dijkstra Shortest Route → Resource Dispatch → Response Status → Output Result**
+
+## Data Structures and Algorithms
+
+The project applies the following Data Structures and Algorithms:
+
+- Arrays
+- Linked Lists
+- Queues
+- Priority Queue
+- Heap
+- Graphs
+- Searching
+- Sorting
+- Dijkstra's Algorithm
+
+## Object-Oriented Programming
+
+The project applies C++ Object-Oriented Programming concepts such as:
+
+- Classes and Objects
+- Encapsulation
+- Abstraction
+- Constructors
+- Object-Oriented Design
+
+## Technology Stack
+
+| Category | Technology |
+|---|---|
+| Programming Language | C++ |
+| Programming Paradigm | Object-Oriented Programming |
+| Data Structures | Queue, Heap, Graph, Arrays, Linked List |
+| Algorithms | Dijkstra, Searching, Sorting |
+| Development Tool | Visual Studio Code |
+| Version Control | Git / GitHub |
 
 ## Team Members
 
-| S. No. | Name          | GitHub Username   |
-| ------ | ------------- | ----------------- |
-| 1      | [Sambhawi Pandey] | [https://github.com/pandeysambhawi3012] |
-| 2      | [Atharv Rawat] | [] |
-| 3      | [Aayush Lalotra] | [https://github.com/Aayushlalotra] |
-| 4      | [Shivam Garg] | [https://github.com/shivam99781] |
+| Name | Role | Contribution |
+|---|---|---|
+| Sambhawi Pandey | Team Lead | Planning, coordination and system design |
+| Atharv Rawat | Developer | Core C++ modules and algorithms |
+| Aayush Lalotra | DS / Testing | Data structures and test cases |
+| Shivam Garg | Developer / Documentation | Implementation support and documentation |
 
-## Technologies and Tools
+## Current Project Status
 
-* C++
-* Data Structures and Algorithms
-* Object-Oriented Programming
-* Git
-* GitHub
+### Phase-I: Proposal & Design — Completed
 
-## Major Features / Modules
+Current progress includes:
 
-* Emergency request management
-* Emergency information handling
-* Data structure based processing
-* OOP-based system design
-* [Add actual project module]
-* [Add actual project module]
+- Background and literature study completed
+- Project requirements identified
+- System architecture prepared
+- Initial modules planned
+- Data requirements identified
 
-## Project Structure
+The project is currently moving from the **Proposal & Design phase** towards the **Development phase**.
+
+## Setup / Installation
+
+### Current Phase
+
+Phase-I focuses on project proposal, requirements and system design. The repository currently contains the Phase-I project documentation and presentation material.
+
+### Development Environment
+
+For future C++ development, the project will use:
+
+- C++
+- Visual Studio Code
+- Git
+- GitHub
+
+## Project Roadmap
+
+### Phase-I — Proposal & Design
+
+- Problem identification
+- Literature/background study
+- Requirement analysis
+- System architecture
+- Module planning
+
+### Phase-II — Development
+
+- C++ implementation
+- Data structure implementation
+- Emergency management
+- Resource management
+- Priority Queue / Heap
+- Graph and Dijkstra implementation
+
+### Phase-III — Final Implementation
+
+- Module integration
+- Testing
+- Performance evaluation
+- Final documentation
+- Demonstration
+
+## Future Scope
+
+The system can later be extended with:
+
+- Database integration
+- Backend/API services
+- Web or mobile interface
+- Maps and location services
+- Real-time ambulance/resource tracking
+- Traffic-aware route selection
+- Hospital capacity information
+- AI/ML-based emergency analysis and prediction
+
+## Repository Structure
 
 ```text
 Smart-Emergency-Response-System/
 │
 ├── PHASE-1/
+│   ├── DSCPP_PHASE-1.pdf
+│   ├── PHASE-1_PPT.pdf
+│   └── Phase-1.tex
+│
 ├── .gitignore
 └── README.md
-```
-
-## Setup and Installation
-
-1. Clone the repository.
-2. Open the project in a C++ compatible IDE.
-3. Compile the required C++ source files.
-4. Run the program.
-
-## Current Project Status
-
-**Phase 1 – Completed**
-
-The initial project documentation and Phase 1 work have been added to the repository. Further development and implementation will be updated regularly as the project progresses.
-
-## Individual Contributions
-
-Each team member will contribute through their own GitHub account. Individual development work will be reflected through meaningful commits and the repository commit history.
-
-## Future Development
-
-* Implementation of additional emergency response modules.
-* Integration of additional Data Structures and algorithms.
-* Testing and improvement of the system.
-* Regular updates based on project requirements.
