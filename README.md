@@ -49,7 +49,6 @@ The proposed system uses an algorithm-based approach to make emergency prioritiz
 
 The project applies the following Data Structures and Algorithms:
 
-- Arrays
 - Linked Lists
 - Queues
 - Priority Queue
