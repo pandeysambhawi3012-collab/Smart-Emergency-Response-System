@@ -19,10 +19,10 @@ This project aims to develop a Smart Emergency Response System using DSA and OOP
 
 | S. No. | Name          | GitHub Username   |
 | ------ | ------------- | ----------------- |
-| 1      | [Sambhawi Pandey] | [https://github.com/Aayushlalotra] |
-| 2      | [Atharv Rawat] | [GitHub Username] |
-| 3      | [Aayush Lalotra] | [GitHub Username] |
-| 4      | [Shivam Garg] | [GitHub Username] |
+| 1      | [Sambhawi Pandey] | [https://github.com/pandeysambhawi3012] |
+| 2      | [Atharv Rawat] | [] |
+| 3      | [Aayush Lalotra] | [https://github.com/Aayushlalotra] |
+| 4      | [Shivam Garg] | [https://github.com/shivam99781] |
 
 ## Technologies and Tools
 
