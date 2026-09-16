@@ -74,7 +74,7 @@ The project applies C++ Object-Oriented Programming concepts such as:
 |---|---|
 | Programming Language | C++ |
 | Programming Paradigm | Object-Oriented Programming |
-| Data Structures | Queue, Heap, Graph, Arrays, Linked List |
+| Data Structures | Queue, Heap, Graph, Linked List |
 | Algorithms | Dijkstra, Searching, Sorting |
 | Development Tool | Visual Studio Code |
 | Version Control | Git / GitHub |
