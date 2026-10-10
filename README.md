@@ -31,7 +31,7 @@ The proposed system uses an algorithm-based approach to make emergency prioritiz
 ## Proposed Features / Modules
 
 - Emergency Management
-- Emergency Data Collection and Validation
+- Emergency Data Collection and Validation.
 - Severity-Based Emergency Prioritization
 - Priority Queue / Heap
 - Ambulance and Resource Management
