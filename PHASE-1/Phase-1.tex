@@ -1,0 +1,355 @@
+% Exact LaTeX recreation of the supplied Phase-1.pdf
+% Compile with pdfLaTeX. Place member pictures in the same folder if required.
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[a4paper,left=2.0cm,right=2.0cm,top=1.55cm,bottom=1.55cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{ragged2e}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{tikz}
+\usepackage{setspace}
+
+% -------------------------------------------------
+% COLOURS
+% -------------------------------------------------
+\definecolor{TitleBlue}{RGB}{61,103,154}
+
+% -------------------------------------------------
+% GENERAL SETTINGS
+% -------------------------------------------------
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\renewcommand{\arraystretch}{1.0}
+
+% The supplied document uses a clean sans-serif heading style
+% and italic serif-style explanatory text.
+\newcommand{\blueheading}[1]{%
+    {\sffamily\color{TitleBlue}\fontsize{15}{18}\selectfont #1}%
+}
+
+\newcommand{\bluebigheading}[1]{%
+    {\sffamily\bfseries\color{TitleBlue}\fontsize{16}{19}\selectfont #1}%
+}
+
+\newcommand{\instruction}[1]{%
+    {\itshape\fontsize{10.5}{12.5}\selectfont #1}%
+}
+
+\newcommand{\answerbox}[2][3.0cm]{%
+    \vspace{2pt}
+    \noindent
+    \fbox{%
+        \begin{minipage}[t][#1][t]{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}
+            \vspace{1mm}
+            \itshape #2
+        \end{minipage}
+    }
+}
+
+% -------------------------------------------------
+% HEADER / FOOTER
+% -------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\fancyhead[L]{%
+    \sffamily\bfseries\itshape\fontsize{10.5}{12}\selectfont
+    BTECH DSCPP-III-2026-T232
+}
+\fancyhead[R]{%
+    \sffamily\bfseries\fontsize{10.5}{12}\selectfont
+    PROJECT PROPOSAL
+}
+\fancyfoot[R]{%
+    \itshape\fontsize{10}{12}\selectfont
+    Page \thepage
+}
+\setlength{\headheight}{14pt}
+\setlength{\headsep}{23pt}
+\setlength{\footskip}{24pt}
+
+% -------------------------------------------------
+% PAGE 1
+% -------------------------------------------------
+\begin{document}
+
+\vspace*{4mm}
+
+\bluebigheading{PROJECT AND TEAM INFORMATION}
+
+\vspace{13mm}
+
+\blueheading{Project Title}
+
+\vspace{1mm}
+
+\instruction{}
+
+\answerbox[1.0cm]{Smart Emergency Response System}
+
+\vspace{13mm}
+
+\blueheading{Student / Team Information}
+
+\vspace{2mm}
+
+% Team information table
+% Compact 4-member layout so all members remain on Page 1.
+\noindent
+\begin{tabularx}{\textwidth}{|>{\RaggedRight\arraybackslash}p{0.69\textwidth}|>{\RaggedRight\arraybackslash}X|}
+\hline
+\begin{minipage}[t]{\linewidth}
+\vspace{1.5mm}
+\textit{Team Name:}\\[-1mm]
+\textit{}
+\vspace{1.5mm}
+\end{minipage}
+&
+\begin{minipage}[t]{\linewidth}
+\vspace{1.5mm}
+\textit{ALPHA}
+\vspace{1.5mm}
+\end{minipage}
+\\
+\hline
+\begin{minipage}[t][3.25cm][t]{\linewidth}
+\vspace{1.5mm}
+\textbf{Team member 1 (Team Lead)}\\[-1mm]
+\textit{}
+\vspace{2.0cm}
+\end{minipage}
+&
+\begin{minipage}[t][3.25cm][t]{\linewidth}
+\vspace{1.5mm}
+\textit{Pandey, Sambhawi -- 2510380216}\\
+\textit{2510380216@geu.ac.in}
+
+\vspace{2mm}
+\includegraphics[width=3.0cm,height=1.5cm,keepaspectratio]{Report/shambhawi.png}
+\end{minipage}
+\\
+\hline
+\begin{minipage}[t][3.25cm][t]{\linewidth}
+\vspace{1.5mm}
+\textbf{Team member 2}\\[-1mm]
+\textit{}
+\vspace{2.0cm}
+\end{minipage}
+&
+\begin{minipage}[t][3.25cm][t]{\linewidth}
+\vspace{1.5mm}
+\textit{Rawat, Atharv -- 2510370380}\\
+\textit{2510370380@geu.ac.in}
+
+\vspace{2mm}
+\includegraphics[width=3.0cm,height=1.5cm,keepaspectratio]{Report/athrav.png}
+\end{minipage}
+\\
+\hline
+\begin{minipage}[t][3.25cm][t]{\linewidth}
+\vspace{1.5mm}
+\textbf{Team member 3}\\[-1mm]
+\textit{}
+\vspace{2.0cm}
+\end{minipage}
+&
+\begin{minipage}[t][3.25cm][t]{\linewidth}
+\vspace{1.5mm}
+\textit{Lalotra, Aayush -- 2510012608}\\
+\textit{2510012608@geu.ac.in}
+
+\vspace{2mm}
+\includegraphics[width=3.0cm,height=1.5cm,keepaspectratio]{Report/Aayush_pic.png}
+\end{minipage}
+\\
+\hline
+\begin{minipage}[t][3.25cm][t]{\linewidth}
+\vspace{1.5mm}
+\textbf{Team member 4}\\[-1mm]
+\textit{}
+\vspace{2.0cm}
+\end{minipage}
+&
+\begin{minipage}[t][3.25cm][t]{\linewidth}
+\vspace{1.5mm}
+\textit{Garg, Shivam -- 2510386512}\\
+\textit{2510386512@geu.ac.in}
+
+\vspace{2mm}
+ \includegraphics[width=3.0cm,height=1.5cm,keepaspectratio]{Report/shivam.png}
+\end{minipage}
+\\
+\hline
+\end{tabularx}
+
+\newpage
+
+% -------------------------------------------------
+% PAGE 2
+% -------------------------------------------------
+
+\bluebigheading{PROPOSAL DESCRIPTION}
+
+\vspace{12mm}
+
+\blueheading{Motivation}
+
+\vspace{1mm}
+
+\instruction{}
+
+\answerbox[8.5cm]{In emergencies such as road accidents, fires and medical emergencies, the need for a fast and efficient response is high. In a city, there can be more than one emergency happening concurrently and a limited number of ambulances, emergency vehicles and response teams available. If decisions are made manually, deciding which emergency should be handled first, which resource should be assigned, and which route should be followed may become difficult in such cases.
+The proposed Smart Emergency Response System is to solve this problem by developing an algorithm based system that assists in prioritizing emergencies and efficiently allocating available emergency resources.The city road network will be represented as a graph, where locations are vertices and roads are weighted edges. We will use Dijkstra's shortest-path algorithm to find an optimal path between points.The city road network will be represented as a graph, where locations are vertices and roads are weighted edges. We will use Dijkstra's shortest-path algorithm to find an optimal path between points.
+In case of emergencies we will use a priority queue, which will prioritize the emergencies based on their severity. Queues, searching, sorting, linked-lists/vectors, and hashing can also be added for efficient data handling.
+The project will be implemented in C++ in Object Oriented Programming where classes will be used to represent things like emergencies, ambulances, hospitals and locations. The first system will be a prototype based on simulation to demonstrate how DSA and OOP can be used to solve a real-world problem}
+
+\vspace{12mm}
+
+\blueheading{State of the Art / Current solution}
+
+\vspace{1mm}
+
+\instruction{}
+
+\answerbox[6cm]{Today, emergency response usually means an emergency call center, dispatchers, ambulance services, police, fire and hospitals all working together to respond to incidents. Emergency information is obtained. The incident is evaluated and an available response unit is sent to the location.
+Modern emergency-management solutions may also utilize digital maps, GPS, communication systems and location-based services to assist with dispatch and navigation. But the effectiveness of the response could still be impacted by such issues as availability of resources, traffic conditions, communication between agencies, and the decisions made during dispatch.The proposed project is not intended to replace existing emergency services. It’s more about the algorithmic decision making part of emergency response. The system will give a simulation for prioritizing emergencies, identifying the available resources and computing the routes using DSA.
+The project addresses the key gap in the development of an integrated educational prototype that demonstrates how priority queues, graphs, shortest-path algorithms, searching, sorting and OOP can work together to support emergency-response decisions.}
+
+\vspace{12mm}
+
+\newpage\blueheading{Project Goals and Milestones}\\
+
+\vspace{1mm}
+
+\instruction{}
+
+\answerbox[12.5cm]{The primary objective of the project is to design a C++ based Smart Emergency Response System that will efficiently handle the emergency requests by ranking the incidents, allocating the available emergency resources and finding the suitable routes using DSA and OOP concepts.\\[0.5mm]
+
+\textbf{Major Goals : }\\[2mm]
+1. Develop an emergency-reporting and management module.\\
+2. Categorize emergencies according to severity.\\
+3. Implement a priority queue/heap for emergency prioritization.\\
+4. Represent the city road network using a graph.\\
+5. Implement Dijkstra’s algorithm for shortest-path calculation.\\
+6. Manage ambulances and other emergency resources.\\
+7. Use appropriate searching and sorting techniques for efficient data management.\\
+8. Apply OOP concepts through modular classes and objects.\\
+9. Build a menu-driven C++ prototype.\\
+10. Test the system using different emergency and resource scenarios.\\[2mm]
+\textbf{Initial Milestones }\\[2mm]
+Milestone 1: System design and requirement analysis\\
+Milestone 2: Design classes for Emergency, Ambulance, Hospital, Location and Response System\\
+Milestone 3: Emergency management with queues and priority queues\\
+Milestone 4: Cities as a graph\\
+Milestone 5: Implement Dijkstra’s Shortest Path Algorithm\\
+Milestone 6: Integration of resource allocation and route selection\\
+Milestone 7: Finish C++ prototype with menu-driven interface\\
+Milestone 8:Testing, debugging, performance analysis and final documentation}
+
+\vspace{12mm}
+
+\blueheading{Project Approach }
+
+\vspace{1mm}
+
+\instruction{}
+
+\instruction{}
+
+\answerbox[8.1cm]{The project will be developed incrementally and modularly. First, the requirements of an emergency-response system will be examined and the major entities and operations will be identified.
+Then the system will be designed using Object Oriented Programming in C++.
+The major components will be represented by classes like Emergency, Ambulance, Hospital, Location, and EmergencyResponseSystem. Encapsulation will be used to protect data, and proper OOP principles will be used to make the system modular and maintainable.
+We will select different concepts in DSA based on their practicality. Queue will be used to process incoming emergency requests. Priority queue/heap will sort emergencies by severity.The city will be a weighted graph . Locations will be vertices , roads will be edges . Dijkstra's algorithm will find the shortest path from the emergency location to the available response resources.
+Techniques for searching and sorting will be employed to locate and arrange emergency resources. Dynamic collections can be implemented using linked lists/vectors and hashing can be used to speed up resource lookup by unique IDs.
+The first platform will be a C++ console-based application developed and tested with a suitable C++ development environment like Visual Studio Code. The system will use simulated data for emergencies, roads, ambulances, and hospitals.
+The development process will be incremental, where individual data structures and algorithms will be developed and tested independently before inclusion in the full emergency-response workflow.}
+
+\newpage
+
+% -------------------------------------------------
+% PAGE 3
+% -------------------------------------------------
+
+\blueheading{System Architecture (High Level Diagram)}\\\\
+
+\vspace{1mm}
+
+\instruction{}
+
+\instruction{}
+
+\answerbox[18cm]{\begin{center}
+\includegraphics[width=0.95\linewidth]{Report/diagram.jpeg}
+\end{center}
+}
+
+\vspace{12mm}
+
+\newpage\blueheading{Project Outcome / Deliverables}
+
+\vspace{1mm}
+
+\instruction{}
+
+\answerbox[12.5cm]{The main outcome of the project will be a working C++ console-based Smart Emergency Response System that demonstrates how Data Structures and Algorithms (DSA) and Object-Oriented Programming (OOP) can be applied to manage emergency situations efficiently.\\
+
+The system will include the following features:\\
+
+1. Registration and management of emergency requests.\\
+2. Classification and prioritization of emergencies based on their severity.\\
+3. Management of available ambulances and other emergency resources.\\
+4. Representation of the city road network using a weighted graph.\\
+5. Calculation of the shortest route using Dijkstra’s algorithm.\\
+6. Selection and assignment of a suitable available emergency resource.\\
+7. Updating the status of emergencies and assigned resources.\\
+8. Displaying relevant emergency, resource, and route information.\\
+9. Efficient organization and retrieval of data using suitable searching and sorting techniques.\\
+
+\textbf{Expected Deliverables :}\\
+
+The project will include the following deliverables:\\
+
+1. C++ source code.\\
+2. A working menu-driven prototype.\\
+3. System architecture diagram.\\
+4. Test cases along with their results.\\
+5. Project report.\\
+6. Presentation/PPT and project demonstration.\\}
+
+\vspace{12mm}
+
+\blueheading{Assumptions}
+
+\vspace{6mm}
+
+\instruction{}
+
+\answerbox[3cm]{The initial system will operate as a simulation using predefined city locations, roads, emergency
+requests, ambulances, and hospitals. Road distances or travel costs will be represented using numerical
+weights. Ambulance and hospital availability will be provided as simulated data rather than obtained
+from real emergency departments. The system assumes that emergency severity can be represented
+using predefined priority levels. Real-time GPS, traffic information, external APIs, and live hospital
+data are outside the initial third-semester scope and may be considered for future development}
+
+\vspace{12mm}
+
+\blueheading{References}
+
+\vspace{1mm}
+
+\instruction{}
+
+\answerbox[2cm]{1. C++ Reference — cppreference.com\\
+2. Dijkstra's Algorithm — CP-Algorithms\\
+3. Class notes and reference material provided by the faculty\\}
+
+\end{document}
