@@ -127,3 +127,7 @@ int ResourceManager::getResourceCount() const
         resources.size()
     );
 }
+std::vector<Resource>& ResourceManager::getResources()
+{
+    return resources;
+}

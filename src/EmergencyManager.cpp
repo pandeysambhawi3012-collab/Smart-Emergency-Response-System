@@ -1,5 +1,5 @@
-#include "EmergencyManager.h"
 
+#include "EmergencyManager.h"
 #include "SeverityCalculator.h"
 
 #include <iostream>
@@ -44,14 +44,13 @@ void EmergencyManager::registerEmergency()
     cout << "         REGISTER EMERGENCY\n";
     cout << "========================================\n";
 
-
     int id = generateEmergencyId();
 
     cout << "Emergency ID: " << id << "\n";
 
 
     // --------------------------------------
-    // Emergency Type
+    // EMERGENCY TYPE
     // --------------------------------------
 
     int typeChoice;
@@ -63,17 +62,14 @@ void EmergencyManager::registerEmergency()
     cout << "4. Natural Disaster\n";
     cout << "5. Crime\n";
     cout << "6. Other\n";
-
     cout << "Enter choice: ";
-    cin >> typeChoice;
 
-
-    while (typeChoice < 1 || typeChoice > 6)
+    while (!(cin >> typeChoice) || typeChoice < 1 || typeChoice > 6)
     {
         cout << "Invalid choice. Enter 1-6: ";
-        cin >> typeChoice;
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
     }
-
 
     EmergencyType type;
 
@@ -82,30 +78,26 @@ void EmergencyManager::registerEmergency()
         case 1:
             type = EmergencyType::Accident;
             break;
-
         case 2:
             type = EmergencyType::Fire;
             break;
-
         case 3:
             type = EmergencyType::Medical;
             break;
-
         case 4:
             type = EmergencyType::NaturalDisaster;
             break;
-
         case 5:
             type = EmergencyType::Crime;
             break;
-
         default:
             type = EmergencyType::Other;
+            break;
     }
 
 
     // --------------------------------------
-    // Location
+    // LOCATION
     // --------------------------------------
 
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -121,60 +113,62 @@ void EmergencyManager::registerEmergency()
         {
             cout << "Location cannot be empty.\n";
         }
-
-    } while (location.empty());
+    }
+    while (location.empty());
 
 
     // --------------------------------------
-    // People affected
+    // PEOPLE AFFECTED
     // --------------------------------------
 
     int peopleAffected;
 
     cout << "Enter number of people affected: ";
-    cin >> peopleAffected;
 
-    while (peopleAffected < 1)
+    while (!(cin >> peopleAffected) || peopleAffected < 1)
     {
-        cout << "Number of people must be at least 1: ";
-        cin >> peopleAffected;
+        cout << "Enter a valid number (at least 1): ";
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
     }
 
 
     // --------------------------------------
-    // Injury severity
+    // INJURY SEVERITY
     // --------------------------------------
 
     int injurySeverity;
 
     cout << "Enter injury severity (0-10): ";
-    cin >> injurySeverity;
 
-    while (injurySeverity < 0 || injurySeverity > 10)
+    while (!(cin >> injurySeverity) ||
+           injurySeverity < 0 || injurySeverity > 10)
     {
         cout << "Enter a value between 0 and 10: ";
-        cin >> injurySeverity;
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
     }
 
 
     // --------------------------------------
-    // Risk level
+    // RISK LEVEL
     // --------------------------------------
 
     int riskLevel;
 
     cout << "Enter risk level (0-10): ";
-    cin >> riskLevel;
 
-    while (riskLevel < 0 || riskLevel > 10)
+    while (!(cin >> riskLevel) ||
+           riskLevel < 0 || riskLevel > 10)
     {
         cout << "Enter a value between 0 and 10: ";
-        cin >> riskLevel;
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
     }
 
 
     // --------------------------------------
-    // Time reported
+    // TIME REPORTED
     // --------------------------------------
 
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -190,56 +184,83 @@ void EmergencyManager::registerEmergency()
         {
             cout << "Time cannot be empty.\n";
         }
-
-    } while (timeReported.empty());
+    }
+    while (timeReported.empty());
 
 
     // --------------------------------------
-    // Required resource
+    // AUTOMATIC RESOURCE SELECTION
     // --------------------------------------
 
     string requiredResource;
 
-    cout << "\nSelect Required Resource:\n";
-    cout << "1. Ambulance\n";
-    cout << "2. Fire Truck\n";
-    cout << "3. Police Vehicle\n";
-    cout << "4. Rescue Team\n";
-
-    int resourceChoice;
-
-    cout << "Enter choice: ";
-    cin >> resourceChoice;
-
-    while (resourceChoice < 1 || resourceChoice > 4)
+    switch (type)
     {
-        cout << "Invalid choice. Enter 1-4: ";
-        cin >> resourceChoice;
-    }
-
-
-    switch (resourceChoice)
-    {
-        case 1:
+        case EmergencyType::Accident:
             requiredResource = "Ambulance";
             break;
 
-        case 2:
+        case EmergencyType::Fire:
             requiredResource = "Fire Truck";
             break;
 
-        case 3:
+        case EmergencyType::Medical:
+            requiredResource = "Ambulance";
+            break;
+
+        case EmergencyType::NaturalDisaster:
+            requiredResource = "Rescue Team";
+            break;
+
+        case EmergencyType::Crime:
             requiredResource = "Police Vehicle";
             break;
 
-        case 4:
-            requiredResource = "Rescue Team";
+        case EmergencyType::Other:
+        {
+            int resourceChoice;
+
+            cout << "\nSelect Required Resource:\n";
+            cout << "1. Ambulance\n";
+            cout << "2. Fire Truck\n";
+            cout << "3. Police Vehicle\n";
+            cout << "4. Rescue Team\n";
+            cout << "Enter choice: ";
+
+            while (!(cin >> resourceChoice) ||
+                   resourceChoice < 1 || resourceChoice > 4)
+            {
+                cout << "Invalid choice. Enter 1-4: ";
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            }
+
+            switch (resourceChoice)
+            {
+                case 1:
+                    requiredResource = "Ambulance";
+                    break;
+                case 2:
+                    requiredResource = "Fire Truck";
+                    break;
+                case 3:
+                    requiredResource = "Police Vehicle";
+                    break;
+                case 4:
+                    requiredResource = "Rescue Team";
+                    break;
+            }
+
             break;
+        }
     }
+
+    cout << "\nAutomatically selected resource: "
+         << requiredResource << "\n";
 
 
     // --------------------------------------
-    // Create Emergency object
+    // CREATE EMERGENCY OBJECT
     // --------------------------------------
 
     Emergency emergency(
@@ -255,7 +276,7 @@ void EmergencyManager::registerEmergency()
 
 
     // --------------------------------------
-    // Calculate Severity
+    // CALCULATE SEVERITY AND PRIORITY
     // --------------------------------------
 
     int score =
@@ -264,23 +285,26 @@ void EmergencyManager::registerEmergency()
     string level =
         SeverityCalculator::classifySeverity(score);
 
-
     emergency.setSeverityScore(score);
     emergency.setSeverityLevel(level);
 
+    // Priority category follows the calculated severity.
+    emergency.setPriority(level);
+
 
     // --------------------------------------
-    // Add emergency to vector
+    // STORE EMERGENCY
     // --------------------------------------
 
     emergencies.push_back(emergency);
 
-
     cout << "\n========================================\n";
     cout << "Emergency registered successfully!\n";
     cout << "Emergency ID : " << id << "\n";
+    cout << "Required     : " << requiredResource << "\n";
     cout << "Severity     : " << score << "\n";
     cout << "Level        : " << level << "\n";
+    cout << "Priority     : " << level << "\n";
     cout << "========================================\n";
 }
 
@@ -297,11 +321,9 @@ void EmergencyManager::displayAllEmergencies() const
         return;
     }
 
-
     cout << "\n========================================\n";
     cout << "        ALL EMERGENCIES\n";
     cout << "========================================\n";
-
 
     for (const Emergency& emergency : emergencies)
     {
@@ -350,25 +372,86 @@ void EmergencyManager::displayEmergency(int emergencyId) const
 
 
 // ==========================================
-// GET EMERGENCY COUNT
+// GET EMERGENCIES
 // ==========================================
 
-const std::vector<Emergency>&
+const vector<Emergency>&
 EmergencyManager::getEmergencies() const
 {
     return emergencies;
 }
+
+
+// ==========================================
+// UPDATE EMERGENCY STATUS
+// ==========================================
+
 void EmergencyManager::updateEmergencyStatus(
     int emergencyId,
     EmergencyStatus newStatus
 )
 {
-    for (Emergency& emergency : emergencies)
+    Emergency* emergency = searchEmergency(emergencyId);
+
+    if (emergency == nullptr)
     {
-        if (emergency.getEmergencyId() == emergencyId)
-        {
-            emergency.setStatus(newStatus);
-            return;
-        }
+        cout << "\nEmergency with ID "
+             << emergencyId
+             << " not found.\n";
+        return;
     }
+
+    emergency->setStatus(newStatus);
+
+    cout << "\nEmergency status updated successfully.\n";
+}
+Emergency EmergencyManager::registerEmergencyFromAPI(
+    int id,
+    EmergencyType type,
+    const string& location,
+    int peopleAffected,
+    int injurySeverity,
+    int riskLevel,
+    const string& timeReported
+) {
+    string requiredResource;
+
+    switch (type) {
+        case EmergencyType::Accident:
+        case EmergencyType::Medical:
+            requiredResource = "Ambulance";
+            break;
+
+        case EmergencyType::Fire:
+            requiredResource = "Fire Truck";
+            break;
+
+        case EmergencyType::NaturalDisaster:
+            requiredResource = "Rescue Team";
+            break;
+
+        case EmergencyType::Crime:
+            requiredResource = "Police Vehicle";
+            break;
+
+        default:
+            requiredResource = "Ambulance";
+            break;
+    }
+
+    Emergency emergency(
+        id, type, location, peopleAffected,
+        injurySeverity, riskLevel, timeReported,
+        requiredResource
+    );
+
+    int score = SeverityCalculator::calculateScore(emergency);
+    string level = SeverityCalculator::classifySeverity(score);
+
+    emergency.setSeverityScore(score);
+    emergency.setSeverityLevel(level);
+    emergency.setPriority(level);
+
+    emergencies.push_back(emergency);
+    return emergency;
 }

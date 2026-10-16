@@ -1,6 +1,6 @@
 #ifndef EMERGENCY_MANAGER_H
 #define EMERGENCY_MANAGER_H
-
+#include <string>
 #include <vector>
 
 #include "Emergency.h"
@@ -14,7 +14,15 @@ private:
     int generateEmergencyId() const;
 
 public:
-   
+    Emergency registerEmergencyFromAPI(
+    int id,
+    EmergencyType type,
+    const std::string& location,
+    int peopleAffected,
+    int injurySeverity,
+    int riskLevel,
+    const std::string& timeReported
+);
     // Register a new emergency
     void registerEmergency();
 

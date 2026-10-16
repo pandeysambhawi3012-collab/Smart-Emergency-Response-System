@@ -21,6 +21,7 @@ public:
     bool releaseResource(int resourceId);
 
     int getResourceCount() const;
+    std::vector<Resource>& getResources();
 };
 
 #endif
