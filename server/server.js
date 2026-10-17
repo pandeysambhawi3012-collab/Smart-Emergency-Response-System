@@ -10,7 +10,10 @@ const PORT = 8080;
 app.use(express.json());
 
 const frontendPath = path.join(__dirname, "..", "frontend");
-const bridgePath = path.join(__dirname, "..", "api_bridge.exe");
+// Windows builds api_bridge.exe; Linux/macOS builds api_bridge.
+const bridgeName =
+    process.platform === "win32" ? "api_bridge.exe" : "api_bridge";
+const bridgePath = path.join(__dirname, "..", bridgeName);
 
 app.use(express.static(frontendPath));
 
@@ -58,6 +61,7 @@ bridge.stderr.on("data", (data) => {
 
 bridge.on("error", (error) => {
     console.error("Could not start C++ bridge:", error.message);
+    console.error("Build it first (see build.bat) and keep it in the project root.");
 });
 
 bridge.on("exit", (code) => {
@@ -102,99 +106,20 @@ function errorResponse(res, error, status = 500) {
     });
 }
 
-// A route graph compatible with the dashboard's Dehradun demo locations.
-const routeGraph = {
-    "ISBT": [
-        { node: "Clock Tower", weight: 4 },
-        { node: "Patel Nagar", weight: 5 }
-    ],
-    "Clock Tower": [
-        { node: "ISBT", weight: 4 },
-        { node: "Rajpur Road", weight: 3 },
-        { node: "Patel Nagar", weight: 6 }
-    ],
-    "Rajpur Road": [
-        { node: "Clock Tower", weight: 3 },
-        { node: "Hospital", weight: 5 }
-    ],
-    "Patel Nagar": [
-        { node: "ISBT", weight: 5 },
-        { node: "Clock Tower", weight: 6 },
-        { node: "Prem Nagar", weight: 4 }
-    ],
-    "Prem Nagar": [
-        { node: "Patel Nagar", weight: 4 },
-        { node: "Hospital", weight: 6 }
-    ],
-    "Hospital": [
-        { node: "Rajpur Road", weight: 5 },
-        { node: "Prem Nagar", weight: 6 }
-    ]
-};
+// Shortest route, calculated by the C++ Graph / Dijkstra module.
+async function routeBetween(source, destination) {
+    const result = await bridgeRequest(
+        `ROUTE\t${encodeField(source)}\t${encodeField(destination)}`
+    );
 
-function shortestRoute(source, destination) {
-    if (!routeGraph[source] || !routeGraph[destination]) {
+    if (!result.success) {
         return { distance: 0, path: [], reachable: false };
     }
-
-    const distances = {};
-    const previous = {};
-    const visited = new Set();
-    const nodes = Object.keys(routeGraph);
-
-    for (const node of nodes) {
-        distances[node] = Infinity;
-        previous[node] = null;
-    }
-
-    distances[source] = 0;
-
-    while (visited.size < nodes.length) {
-        let current = null;
-
-        for (const node of nodes) {
-            if (
-                !visited.has(node) &&
-                (current === null ||
-                 distances[node] < distances[current])
-            ) {
-                current = node;
-            }
-        }
-
-        if (current === null || distances[current] === Infinity) break;
-        if (current === destination) break;
-
-        visited.add(current);
-
-        for (const edge of routeGraph[current]) {
-            const candidate = distances[current] + edge.weight;
-
-            if (candidate < distances[edge.node]) {
-                distances[edge.node] = candidate;
-                previous[edge.node] = current;
-            }
-        }
-    }
-
-    if (distances[destination] === Infinity) {
-        return { distance: 0, path: [], reachable: false };
-    }
-
-    const route = [];
-    let current = destination;
-
-    while (current !== null) {
-        route.push(current);
-        current = previous[current];
-    }
-
-    route.reverse();
 
     return {
-        distance: distances[destination],
-        path: route,
-        reachable: true
+        distance: result.distance,
+        path: result.path,
+        reachable: result.reachable
     };
 }
 
@@ -210,6 +135,15 @@ app.get("/api/state", async (req, res) => {
     try {
         const state = await bridgeRequest("STATE");
         res.json(state);
+    } catch (error) {
+        errorResponse(res, error, 503);
+    }
+});
+
+// Pending emergencies in the order the C++ priority queue (heap) serves them.
+app.get("/api/queue", async (req, res) => {
+    try {
+        res.json(await bridgeRequest("QUEUE"));
     } catch (error) {
         errorResponse(res, error, 503);
     }
@@ -267,9 +201,10 @@ app.post("/api/emergencies", async (req, res) => {
     }
 });
 
-// Return available ambulances ordered by shortest route to the emergency.
-// This currently uses the dashboard's demonstration graph.
-app.get("/api/ambulances/ranked", async (req, res) => {
+// Return the AVAILABLE vehicles of the type this emergency needs
+// (ambulance, fire truck, police vehicle or rescue team), nearest first.
+// Routes come from the C++ Dijkstra module.
+async function rankResources(req, res) {
     const emergencyId = Number(req.query.emergencyId);
 
     if (!Number.isInteger(emergencyId) || emergencyId <= 0) {
@@ -297,41 +232,78 @@ app.get("/api/ambulances/ranked", async (req, res) => {
             });
         }
 
-        const ambulances = state.ambulances
-            .filter(item => item.status === "Available")
-            .map(item => ({
+        const requiredResource = emergency.requiredResource || "Ambulance";
+        const resources = [];
+
+        for (const item of state.resources) {
+            if (item.type !== requiredResource) continue;
+            if (item.status !== "Available") continue;
+
+            resources.push({
                 id: item.id,
+                type: item.type,
                 location: item.location,
                 status: item.status,
-                route: shortestRoute(item.location, emergency.location)
-            }))
-            .sort((a, b) => {
-                if (!a.route.reachable && !b.route.reachable) return 0;
-                if (!a.route.reachable) return 1;
-                if (!b.route.reachable) return -1;
-                return a.route.distance - b.route.distance;
+                route: await routeBetween(item.location, emergency.location)
             });
+        }
 
-        const hospitalRoute = shortestRoute(
-            emergency.location,
-            "Hospital"
-        );
+        resources.sort((a, b) => {
+            if (!a.route.reachable && !b.route.reachable) return 0;
+            if (!a.route.reachable) return 1;
+            if (!b.route.reachable) return -1;
+            return a.route.distance - b.route.distance;
+        });
+
+        // Only medical/accident calls need a hospital leg.
+        const hospitalRoute =
+            requiredResource === "Ambulance"
+                ? await routeBetween(emergency.location, "Hospital")
+                : null;
 
         res.json({
             success: true,
             emergencyId,
-            ambulances,
+            requiredResource,
+            resources,
+            ambulances: resources,   // older name, kept for compatibility
             hospitalRoute
         });
     } catch (error) {
         errorResponse(res, error, 503);
     }
+}
+
+app.get(["/api/resources/ranked", "/api/ambulances/ranked"], rankResources);
+
+// Dispatch the vehicle the dashboard selected. If no ambulanceId is sent,
+// the C++ bridge falls back to the first available suitable resource.
+app.post("/api/dispatch", async (req, res) => {
+    const emergencyId = Number(req.body.emergencyId);
+    const ambulanceId = Number(req.body.ambulanceId);
+
+    if (!Number.isInteger(emergencyId) || emergencyId <= 0) {
+        return res.status(400).json({
+            success: false,
+            error: "A valid emergencyId is required"
+        });
+    }
+
+    const command =
+        Number.isInteger(ambulanceId) && ambulanceId > 0
+            ? `DISPATCH\t${emergencyId}\t${ambulanceId}`
+            : `DISPATCH\t${emergencyId}`;
+
+    try {
+        const result = await bridgeRequest(command);
+        res.status(result.success ? 200 : 409).json(result);
+    } catch (error) {
+        errorResponse(res, error, 503);
+    }
 });
 
-// The current C++ bridge chooses the first available suitable resource.
-// The selected ambulance ID is accepted for frontend compatibility,
-// but exact resource selection is not yet implemented in C++.
-app.post("/api/dispatch", async (req, res) => {
+// Close an emergency and free the vehicle that was handling it.
+app.post("/api/emergencies/resolve", async (req, res) => {
     const emergencyId = Number(req.body.emergencyId);
 
     if (!Number.isInteger(emergencyId) || emergencyId <= 0) {
@@ -342,16 +314,8 @@ app.post("/api/dispatch", async (req, res) => {
     }
 
     try {
-        const result = await bridgeRequest(`DISPATCH\t${emergencyId}`);
-
-        if (!result.success) {
-            return res.status(409).json(result);
-        }
-
-        res.json({
-            ...result,
-            distance: 0
-        });
+        const result = await bridgeRequest(`RESOLVE\t${emergencyId}`);
+        res.status(result.success ? 200 : 409).json(result);
     } catch (error) {
         errorResponse(res, error, 503);
     }

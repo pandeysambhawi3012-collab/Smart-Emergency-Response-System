@@ -5,6 +5,7 @@
 #include <sstream>
 #include <algorithm>
 #include <cctype>
+#include <map>
 
 #include "../include/Emergency.h"
 #include "../include/EmergencyManager.h"
@@ -107,7 +108,7 @@ bool parseEmergencyType(string value, EmergencyType& type) {
 
 string emergencyStatusName(EmergencyStatus status) {
     switch (status) {
-        case EmergencyStatus::Reported:        return "Reported";
+        case EmergencyStatus::Reported:        return "Pending";
         case EmergencyStatus::Pending:         return "Pending";
         case EmergencyStatus::ResourceAssigned:return "Resource Assigned";
         case EmergencyStatus::InProgress:      return "In Progress";
@@ -146,6 +147,28 @@ bool parseResourceType(const string& name, ResourceType& type) {
     return true;
 }
 
+// The original console-menu modules print status text with cout.
+// This silences them while a call runs so stdout carries exactly one
+// JSON reply per command.
+struct QuietOutput {
+    ostringstream sink;
+    streambuf* old;
+
+    QuietOutput() : old(cout.rdbuf(sink.rdbuf())) {}
+    ~QuietOutput() { cout.rdbuf(old); }
+};
+
+string pathJson(const vector<string>& path) {
+    string result = "[";
+
+    for (size_t i = 0; i < path.size(); ++i) {
+        if (i) result += ",";
+        result += "\"" + jsonEscape(path[i]) + "\"";
+    }
+
+    return result + "]";
+}
+
 void printError(const string& message) {
     cout << "{\"success\":false,\"error\":\""
          << jsonEscape(message) << "\"}" << endl;
@@ -164,47 +187,60 @@ int main() {
     ResourceManager resourceManager;
     Graph graph;
 
-    // Initial resource inventory.
-    resourceManager.addResource(Resource(
-        101, ResourceType::Ambulance,
-        "Hospital", ResourceStatus::Available));
+    // emergency ID -> ID of the vehicle currently assigned to it
+    map<int, int> assignments;
 
-    resourceManager.addResource(Resource(
-        102, ResourceType::Ambulance,
-        "ISBT", ResourceStatus::Available));
+    {
+        QuietOutput quiet;
 
-    resourceManager.addResource(Resource(
-        201, ResourceType::FireTruck,
-        "Fire Station", ResourceStatus::Available));
+        // Initial resource inventory.
+        resourceManager.addResource(Resource(
+            101, ResourceType::Ambulance,
+            "Hospital", ResourceStatus::Available));
 
-    resourceManager.addResource(Resource(
-        301, ResourceType::PoliceVehicle,
-        "Police Station", ResourceStatus::Available));
+        resourceManager.addResource(Resource(
+            102, ResourceType::Ambulance,
+            "ISBT", ResourceStatus::Available));
 
-    resourceManager.addResource(Resource(
-        401, ResourceType::RescueTeam,
-        "Rescue Center", ResourceStatus::Available));
+        resourceManager.addResource(Resource(
+            201, ResourceType::FireTruck,
+            "Fire Station", ResourceStatus::Available));
 
-    // Weighted graph for the route module.
-    graph.addLocation("Hospital");
-    graph.addLocation("ISBT");
-    graph.addLocation("Fire Station");
-    graph.addLocation("Police Station");
-    graph.addLocation("Rescue Center");
-    graph.addLocation("Zone A");
-    graph.addLocation("Zone B");
-    graph.addLocation("Zone C");
+        resourceManager.addResource(Resource(
+            301, ResourceType::PoliceVehicle,
+            "Police Station", ResourceStatus::Available));
 
-    graph.addRoad("Hospital", "ISBT", 4);
-    graph.addRoad("Hospital", "Zone A", 6);
-    graph.addRoad("ISBT", "Zone A", 3);
-    graph.addRoad("ISBT", "Zone B", 5);
-    graph.addRoad("Zone A", "Zone B", 2);
-    graph.addRoad("Zone A", "Zone C", 7);
-    graph.addRoad("Zone B", "Zone C", 3);
-    graph.addRoad("Fire Station", "Zone C", 4);
-    graph.addRoad("Police Station", "Zone B", 6);
-    graph.addRoad("Rescue Center", "Zone C", 5);
+        resourceManager.addResource(Resource(
+            401, ResourceType::RescueTeam,
+            "Rescue Center", ResourceStatus::Available));
+
+        // Road network: the same Dehradun locations and distances the
+        // dashboard uses, so C++ Dijkstra answers every route query.
+        graph.addLocation("ISBT");
+        graph.addLocation("Clock Tower");
+        graph.addLocation("Rajpur Road");
+        graph.addLocation("Patel Nagar");
+        graph.addLocation("Prem Nagar");
+        graph.addLocation("Hospital");
+
+        graph.addRoad("ISBT", "Clock Tower", 4);
+        graph.addRoad("ISBT", "Patel Nagar", 5);
+        graph.addRoad("Clock Tower", "Rajpur Road", 3);
+        graph.addRoad("Clock Tower", "Patel Nagar", 6);
+        graph.addRoad("Rajpur Road", "Hospital", 5);
+        graph.addRoad("Patel Nagar", "Prem Nagar", 4);
+        graph.addRoad("Prem Nagar", "Hospital", 6);
+
+        // Service stations, so fire/police/rescue vehicles are reachable.
+        // These connections and distances are placeholders: edit them.
+        graph.addLocation("Fire Station");
+        graph.addLocation("Police Station");
+        graph.addLocation("Rescue Center");
+
+        graph.addRoad("Fire Station", "Clock Tower", 3);
+        graph.addRoad("Police Station", "Rajpur Road", 2);
+        graph.addRoad("Rescue Center", "Prem Nagar", 3);
+    }
 
     cerr << "C++ API bridge started." << endl;
 
@@ -237,7 +273,13 @@ int main() {
                      << jsonEscape(e.getSeverityLevel())
                      << "\",\"status\":\""
                      << jsonEscape(emergencyStatusName(e.getStatus()))
-                     << "\"}";
+                     << "\",\"requiredResource\":\""
+                     << jsonEscape(e.getRequiredResource())
+                     << "\",\"assignedResourceId\":"
+                     << (assignments.count(e.getEmergencyId())
+                             ? assignments.at(e.getEmergencyId())
+                             : 0)
+                     << "}";
             }
 
             cout << "],\"resources\":[";
@@ -283,6 +325,113 @@ int main() {
 
         if (fields.empty()) {
             printError("Empty command");
+            continue;
+        }
+
+        // ROUTE <from> <to>   (url-encoded names) -> C++ Dijkstra
+        if (fields[0] == "ROUTE") {
+            if (fields.size() < 3) {
+                printError("ROUTE requires a source and a destination");
+                continue;
+            }
+
+            RouteResult route;
+
+            {
+                QuietOutput quiet;
+                route = graph.dijkstra(
+                    urlDecode(fields[1]), urlDecode(fields[2]));
+            }
+
+            cout << "{\"success\":true,\"distance\":" << route.distance
+                 << ",\"reachable\":"
+                 << (route.reachable ? "true" : "false")
+                 << ",\"path\":" << pathJson(route.path) << "}" << endl;
+
+            continue;
+        }
+
+        // QUEUE -> pending emergencies in priority-queue (heap) order
+        if (fields[0] == "QUEUE") {
+            // Work on a copy so reading the queue does not empty it.
+            PriorityManager copy = priorityManager;
+            bool firstItem = true;
+
+            cout << "{\"success\":true,\"queue\":[";
+
+            while (!copy.isEmpty()) {
+                Emergency top = copy.getHighestPriorityEmergency();
+                Emergency* live =
+                    emergencyManager.searchEmergency(top.getEmergencyId());
+
+                if (!live ||
+                    (live->getStatus() != EmergencyStatus::Reported &&
+                     live->getStatus() != EmergencyStatus::Pending))
+                    continue;
+
+                if (!firstItem) cout << ",";
+                firstItem = false;
+
+                cout << "{\"id\":" << top.getEmergencyId()
+                     << ",\"severity\":" << top.getSeverityScore() << "}";
+            }
+
+            cout << "]}" << endl;
+            continue;
+        }
+
+        // RESOLVE <emergency ID> -> closes the emergency, frees its vehicle
+        if (fields[0] == "RESOLVE") {
+            if (fields.size() < 2) {
+                printError("RESOLVE requires an emergency ID");
+                continue;
+            }
+
+            int id;
+
+            try {
+                id = stoi(fields[1]);
+            } catch (...) {
+                printError("Invalid emergency ID");
+                continue;
+            }
+
+            Emergency* emergency = emergencyManager.searchEmergency(id);
+
+            if (!emergency) {
+                printError("Emergency not found");
+                continue;
+            }
+
+            if (emergency->getStatus() == EmergencyStatus::Resolved) {
+                printError("Emergency is already resolved");
+                continue;
+            }
+
+            int releasedId = 0;
+
+            {
+                QuietOutput quiet;
+
+                auto it = assignments.find(id);
+
+                if (it != assignments.end()) {
+                    if (resourceManager.releaseResource(it->second)) {
+                        releasedId = it->second;
+                    }
+
+                    assignments.erase(it);
+                }
+
+                emergencyManager.updateEmergencyStatus(
+                    id, EmergencyStatus::Resolved);
+            }
+
+            cout << "{\"success\":true,\"message\":\"Emergency resolved\","
+                 << "\"emergencyId\":" << id
+                 << ",\"releasedResourceId\":" << releasedId
+                 << "}" << endl;
+
             continue;
         }
 
@@ -376,7 +525,7 @@ int main() {
             continue;
         }
 
-        // DISPATCH <emergency ID>
+        // DISPATCH <emergency ID> [resource ID]
         if (fields[0] == "DISPATCH") {
             if (fields.size() < 2) {
                 printError("DISPATCH requires an emergency ID");
@@ -399,6 +548,13 @@ int main() {
                 continue;
             }
 
+            if (emergency->getStatus() == EmergencyStatus::ResourceAssigned ||
+                emergency->getStatus() == EmergencyStatus::InProgress ||
+                emergency->getStatus() == EmergencyStatus::Resolved) {
+                printError("Emergency already has a resource assigned");
+                continue;
+            }
+
             ResourceType requiredType;
 
             if (!parseResourceType(
@@ -407,17 +563,64 @@ int main() {
                 continue;
             }
 
-            Resource* resource =
-                resourceManager.findAvailableResource(requiredType);
+            Resource* resource = nullptr;
 
-            if (!resource) {
-                printError("No available resource of the required type");
-                continue;
+            if (fields.size() >= 3) {
+                // The dashboard picked a specific vehicle.
+                int wanted;
+
+                try {
+                    wanted = stoi(fields[2]);
+                } catch (...) {
+                    printError("Invalid resource ID");
+                    continue;
+                }
+
+                for (Resource& r : resourceManager.getResources()) {
+                    if (r.getResourceId() == wanted) {
+                        resource = &r;
+                        break;
+                    }
+                }
+
+                if (!resource) {
+                    printError("Selected resource does not exist");
+                    continue;
+                }
+
+                if (resource->getType() != requiredType) {
+                    printError("Selected resource is not the type this "
+                               "emergency needs (" +
+                               emergency->getRequiredResource() + ")");
+                    continue;
+                }
+
+                if (resource->getStatus() != ResourceStatus::Available) {
+                    printError("Selected resource is already busy");
+                    continue;
+                }
+            } else {
+                resource =
+                    resourceManager.findAvailableResource(requiredType);
+
+                if (!resource) {
+                    printError(
+                        "No available resource of the required type");
+                    continue;
+                }
             }
 
-            resource->setStatus(ResourceStatus::Busy);
-            emergencyManager.updateEmergencyStatus(
-                id, EmergencyStatus::ResourceAssigned);
+            RouteResult route;
+
+            {
+                QuietOutput quiet;
+                route = graph.dijkstra(
+                    resource->getLocation(), emergency->getLocation());
+                resource->setStatus(ResourceStatus::Busy);
+                emergencyManager.updateEmergencyStatus(
+                    id, EmergencyStatus::ResourceAssigned);
+                assignments[id] = resource->getResourceId();
+            }
 
             cout << "{\"success\":true,\"message\":\"Resource assigned\","
                  << "\"emergencyId\":" << id
@@ -426,7 +629,11 @@ int main() {
                  << jsonEscape(resourceTypeName(resource->getType()))
                  << "\",\"resourceLocation\":\""
                  << jsonEscape(resource->getLocation())
-                 << "\"}" << endl;
+                 << "\",\"distance\":" << route.distance
+                 << ",\"reachable\":"
+                 << (route.reachable ? "true" : "false")
+                 << ",\"path\":" << pathJson(route.path)
+                 << "}" << endl;
 
             continue;
         }
@@ -447,7 +654,29 @@ int main() {
                 continue;
             }
 
-            if (resourceManager.releaseResource(id)) {
+            bool released;
+
+            {
+                QuietOutput quiet;
+                released = resourceManager.releaseResource(id);
+
+                if (released) {
+                    // A vehicle released mid-response puts its emergency
+                    // back in the waiting queue so it can be re-dispatched.
+                    for (auto it = assignments.begin();
+                         it != assignments.end();) {
+                        if (it->second == id) {
+                            emergencyManager.updateEmergencyStatus(
+                                it->first, EmergencyStatus::Pending);
+                            it = assignments.erase(it);
+                        } else {
+                            ++it;
+                        }
+                    }
+                }
+            }
+
+            if (released) {
                 printSuccess("Resource released successfully");
             } else {
                 printError("Resource not found or already available");

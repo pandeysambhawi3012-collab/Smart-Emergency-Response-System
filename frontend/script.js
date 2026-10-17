@@ -23,6 +23,10 @@ let ambulances = [
 ];
 
 
+// Every vehicle reported by the C++ backend (ambulance, fire truck, ...)
+let vehicles = [];
+
+
 // Registered emergencies
 let emergencies = [
     { id: "101", type: "Road Accident", location: "Clock Tower", severity: 5, status: "Pending" },
@@ -431,9 +435,22 @@ function renderPriorityQueue() {
             <small>
                 Severity:
                 <strong>
-                    ${emergency.severity}
+                    ${emergency.severityLevel ? emergency.severityLevel + " (" + emergency.severity + ")" : emergency.severity}
                 </strong>
             </small>
+
+            ${emergency.fromApi ? `
+            <br>
+            <small>Status: ${emergency.status}${emergency.requiredResource ? " | Needs: " + emergency.requiredResource : ""}</small>
+            ` : ""}
+
+            ${emergency.fromApi && emergency.status === "Resource Assigned" ? `
+            <br>
+            <button class="outline-btn" style="margin-top:8px"
+                onclick="resolveEmergency('${emergency.id}')">
+                ✔ Mark Resolved
+            </button>
+            ` : ""}
 
         `;
 
@@ -696,6 +713,9 @@ function getAmbulance(id) {
     return ambulances.find(
         ambulance =>
             ambulance.id === id
+    ) || vehicles.find(
+        vehicle =>
+            String(vehicle.id) === String(id)
     );
 
 }
@@ -1210,7 +1230,7 @@ document.addEventListener(
 // C++ API INTEGRATION
 // The backend uses integer emergency IDs (101, 102...), existing C++
 // Graph/Dijkstra + RouteUtils, and SQLite. Start backend before enabling.
-const SAFEROUTE_API = "http://127.0.0.1:8080/api";
+const SAFEROUTE_API = "/api";   // same origin as the Express server
 let apiAvailable = false;
 let apiEmergencyId = null;
 let apiSelectedAmbulance = null;
@@ -1236,11 +1256,30 @@ async function loadBackendState() {
         const state = await saferouteApi("/state");
         apiAvailable = true;
         ambulances = state.ambulances.map(a => ({id:a.id, location:a.location, status:a.status}));
-        emergencies = state.emergencies.map(e => ({
+        vehicles = state.resources.map(r => ({id:r.id, type:r.type, location:r.location, status:r.status}));
+        // Resolved emergencies leave the dashboard.
+        emergencies = state.emergencies.filter(e => e.status !== "Resolved").map(e => ({
             id:String(e.id), type:e.type, location:e.location,
-            severity:Number(e.severity), status:e.status
+            severity:Number(e.severity), severityLevel:e.severityLevel,
+            status:e.status, requiredResource:e.requiredResource,
+            assignedResourceId:e.assignedResourceId, fromApi:true
         }));
-        renderAmbulances();
+        // Use the C++ priority queue (heap) order. The later severity sorts
+        // are stable, so ties keep the order the heap decided.
+        try {
+            const q = await saferouteApi("/queue");
+            const rank = id => {
+                const i = q.queue.findIndex(item => String(item.id) === id);
+                return i === -1 ? Infinity : i;
+            };
+            emergencies.sort((a, b) => {
+                const ra = rank(a.id), rb = rank(b.id);
+                return ra === rb ? 0 : ra < rb ? -1 : 1;
+            });
+        } catch (queueError) {
+            console.warn("Could not read C++ priority queue", queueError);
+        }
+        renderVehicleFleet();
         renderPriorityQueue();
         updateDashboard();
         populateAmbulanceSelect();
@@ -1250,7 +1289,11 @@ async function loadBackendState() {
             apiEmergencyId = Number(pending.id);
             await refreshBackendRanking(apiEmergencyId);
         } else {
-            renderAmbulances();
+            apiEmergencyId = null;
+            apiSelectedAmbulance = null;
+            renderVehicleFleet();
+            const btn = document.getElementById("dispatchBtn");
+            if (btn) btn.textContent = "Dispatch Vehicle";
         }
         return true;
     } catch (error) {
@@ -1260,23 +1303,61 @@ async function loadBackendState() {
     }
 }
 
+const RESOURCE_ICONS = {
+    "Ambulance": "🚑",
+    "Fire Truck": "🚒",
+    "Police Vehicle": "🚓",
+    "Rescue Team": "🛟"
+};
+
+function resourceIcon(type) {
+    return RESOURCE_ICONS[type] || "🚨";
+}
+
+// Fleet view used when no emergency is waiting: every vehicle, any type.
+function renderVehicleFleet() {
+    const container = document.getElementById("ambulanceList");
+    if (!container) return;
+    container.innerHTML = "";
+    vehicles.forEach(v => {
+        const card = document.createElement("div");
+        card.className = "ambulance-card";
+        const statusClass = v.status === "Available" ? "available" : "busy";
+        card.innerHTML = `
+          <div class="ambulance-top"><strong>${resourceIcon(v.type)} ${v.id}</strong>
+          <span class="status ${statusClass}">${v.status}</span></div>
+          <div class="ambulance-location">${v.type} — 📍 ${v.location}</div>`;
+        container.appendChild(card);
+    });
+}
+
+// Ranked view for one emergency: only vehicles of the type it needs.
 async function refreshBackendRanking(emergencyId) {
     if (!apiAvailable || !emergencyId) return;
     try {
-        const result = await saferouteApi(`/ambulances/ranked?emergencyId=${encodeURIComponent(emergencyId)}`);
+        const result = await saferouteApi(`/resources/ranked?emergencyId=${encodeURIComponent(emergencyId)}`);
+        const required = result.requiredResource || "Ambulance";
         apiHospitalRoute = result.hospitalRoute;
         const container = document.getElementById("ambulanceList");
         container.innerHTML = "";
-        if (!apiSelectedAmbulance && result.ambulances.length) {
-            apiSelectedAmbulance = result.ambulances[0].id;
+
+        const stillValid = result.resources.some(r => String(r.id) === String(apiSelectedAmbulance));
+        if (!stillValid) {
+            apiSelectedAmbulance = result.resources.length ? result.resources[0].id : null;
         }
-        result.ambulances.forEach((a, index) => {
+
+        if (!result.resources.length) {
+            container.innerHTML = `<p style="padding:12px;color:#b91c1c;font-weight:bold">
+              No ${required} is available. Mark an active emergency as resolved to free one.</p>`;
+        }
+
+        result.resources.forEach(a => {
             const card = document.createElement("div");
             card.className = "ambulance-card" + (a.id === apiSelectedAmbulance ? " selected-ambulance" : "");
             card.innerHTML = `
-              <div class="ambulance-top"><strong>🚑 ${a.id}</strong>
+              <div class="ambulance-top"><strong>${resourceIcon(a.type)} ${a.id}</strong>
               <span class="status available">Available</span></div>
-              <div class="ambulance-location">📍 ${a.location}</div>
+              <div class="ambulance-location">${a.type} — 📍 ${a.location}</div>
               <div style="margin-top:8px;font-size:12px;color:#15803d;font-weight:bold">
                 Shortest route: ${a.route.reachable ? a.route.distance + " km" : "No route"}
               </div>
@@ -1289,29 +1370,71 @@ async function refreshBackendRanking(emergencyId) {
                 if (select) select.value = a.id;
                 refreshBackendRanking(emergencyId);
                 const msg = document.getElementById("dispatchMessage");
-                if (msg) msg.textContent = `${a.id} selected. Route to emergency: ${a.route.distance} km. Click Dispatch Selected Ambulance to confirm.`;
+                if (msg) msg.textContent = `${a.id} (${a.type}) selected. Route to emergency: ${a.route.distance} km. Click Dispatch to confirm.`;
                 if (typeof updateRealMapRoute === "function") setTimeout(updateRealMapRoute, 80);
             });
             container.appendChild(card);
         });
-        if (result.hospitalRoute) {
+
+        // Route box: hospital leg for medical calls, otherwise the selected
+        // vehicle's route to the emergency.
+        const selected = result.resources.find(r => r.id === apiSelectedAmbulance);
+        const shown = result.hospitalRoute || (selected && selected.route);
+        if (shown) {
             const box = document.getElementById("routeResult");
             const distance = document.getElementById("routeDistanceText");
             const path = document.getElementById("routePath");
             if (box && distance && path) {
                 box.classList.remove("hidden");
-                distance.textContent = result.hospitalRoute.reachable ? `${result.hospitalRoute.distance} km` : "No route";
-                path.textContent = result.hospitalRoute.reachable ? result.hospitalRoute.path.join(" → ") : "No route available";
+                distance.textContent = shown.reachable ? `${shown.distance} km` : "No route";
+                path.textContent = shown.reachable ? shown.path.join(" → ") : "No route available";
             }
         }
-        populateAmbulanceSelect();
-        if (apiSelectedAmbulance) {
-            const select = document.getElementById("ambulanceSelect");
-            if (select) select.value = apiSelectedAmbulance;
+
+        // The dropdown lists the vehicles that can answer THIS emergency.
+        const select = document.getElementById("ambulanceSelect");
+        if (select) {
+            select.innerHTML = "";
+            result.resources.forEach(r => {
+                const option = document.createElement("option");
+                option.value = r.id;
+                option.textContent = `${r.id} — ${r.type} — ${r.location}`;
+                select.appendChild(option);
+            });
+            if (!result.resources.length) {
+                const option = document.createElement("option");
+                option.textContent = `No ${required} available`;
+                option.disabled = true;
+                select.appendChild(option);
+            }
+            if (apiSelectedAmbulance) select.value = apiSelectedAmbulance;
         }
+
+        const btn = document.getElementById("dispatchBtn");
+        if (btn) btn.textContent = `Dispatch ${required} → Emergency ${emergencyId}`;
         updateDashboard();
     } catch (error) {
         alert(`Could not calculate routes from C++ backend: ${error.message}`);
+    }
+}
+
+// Close an emergency; the C++ backend frees the vehicle that was handling it.
+async function resolveEmergency(id) {
+    try {
+        const result = await saferouteApi("/emergencies/resolve", {
+            method: "POST",
+            body: JSON.stringify({ emergencyId: Number(id) })
+        });
+        apiSelectedAmbulance = null;
+        await loadBackendState();
+        const msg = document.getElementById("dispatchMessage");
+        if (msg) {
+            msg.textContent = result.releasedResourceId
+                ? `Emergency ${id} resolved. Vehicle ${result.releasedResourceId} is available again.`
+                : `Emergency ${id} resolved.`;
+        }
+    } catch (error) {
+        alert(`Could not resolve emergency: ${error.message}`);
     }
 }
 
@@ -1339,11 +1462,17 @@ registerEmergency = async function() {
         apiEmergencyId = id;
         apiSelectedAmbulance = null;
         document.getElementById("emergencyId").value = "";
+        // loadBackendState picks the highest-priority pending emergency (the
+        // head of the C++ priority queue) and ranks vehicles for it, so the
+        // panel and the Dispatch button always refer to the same emergency.
         await loadBackendState();
-        await refreshBackendRanking(id);
         triggerEmergencyAlert(type);
         const notice = document.getElementById("dispatchMessage");
-        if (notice) notice.textContent = `Emergency ${id} registered. Ambulances ranked by shortest route.`;
+        if (notice) {
+            notice.textContent = apiEmergencyId === id
+                ? `Emergency ${id} registered. Vehicles ranked by shortest route.`
+                : `Emergency ${id} registered and queued. Emergency ${apiEmergencyId} has higher priority, so it is dispatched first.`;
+        }
     } catch (error) {
         alert(`Backend registration failed: ${error.message}`);
     }
@@ -1372,7 +1501,7 @@ dispatchAmbulance = async function() {
             body:JSON.stringify({emergencyId:apiEmergencyId, ambulanceId})
         });
         document.getElementById("dispatchMessage").textContent =
-            `${result.message} Simulated route distance: ${result.distance} km.`;
+            `${result.message} Route distance: ${result.distance} km.`;
         apiSelectedAmbulance = null;
         await loadBackendState();
         alert(result.message);
@@ -1772,7 +1901,8 @@ function getEmergencyLocationName() {
 function getSelectedAmbulanceForMap() {
   const select=document.getElementById("ambulanceSelect");
   const chosen=window.__selectedAmbulanceId || select?.value;
-  const fromArray=(Array.isArray(ambulances)?ambulances:[]).find(a=>a.id===chosen);
+  const fromArray=(Array.isArray(ambulances)?ambulances:[]).find(a=>a.id===chosen)
+    || vehicles.find(v=>String(v.id)===String(chosen));
   const fromPrototype=PROTOTYPE_AMBULANCES.find(a=>a.id===chosen);
   if (fromArray || fromPrototype) return fromArray || fromPrototype;
   // Only use the first available unit before the user has selected one.
