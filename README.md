@@ -83,9 +83,9 @@ The project applies C++ Object-Oriented Programming concepts such as:
 
 | Name | Role | Contribution |
 |---|---|---|
-| Sambhawi Pandey | Team Lead | Planning, module integration, debugging, and system design |
-| Atharv Rawat | Developer | Core C++ modules and algorithms |
-| Aayush Lalotra | DS / Testing | Data structures and test cases |
+| Sambhawi Pandey | Team Lead / Backend | Planning, module integration, debugging, and system design |
+| Atharv Rawat | Developer / Testing | Data structures and test cases |
+| Aayush Lalotra | Developer / Frontend | Core C++ modules and algorithms |
 | Shivam Garg | Developer / Documentation | Implementation support and documentation |
 
 ## Current Project Status
