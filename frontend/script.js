@@ -1291,6 +1291,9 @@ async function loadBackendState() {
         } else {
             apiEmergencyId = null;
             apiSelectedAmbulance = null;
+            selectedRoute = null;
+            const activeRouteDisplay = document.getElementById("routeDistance");
+            if (activeRouteDisplay) activeRouteDisplay.textContent = "--";
             renderVehicleFleet();
             const btn = document.getElementById("dispatchBtn");
             if (btn) btn.textContent = "Dispatch Vehicle";
@@ -1378,8 +1381,11 @@ async function refreshBackendRanking(emergencyId) {
 
         // Route box: hospital leg for medical calls, otherwise the selected
         // vehicle's route to the emergency.
-        const selected = result.resources.find(r => r.id === apiSelectedAmbulance);
-        const shown = result.hospitalRoute || (selected && selected.route);
+        const selected = result.resources.find(r => String(r.id) === String(apiSelectedAmbulance));
+        // Keep the dashboard's Active Route card synchronized with the
+        // selected vehicle's route to this emergency (not the hospital leg).
+        selectedRoute = selected ? selected.route : null;
+        const shown = selected ? selected.route : result.hospitalRoute;
         if (shown) {
             const box = document.getElementById("routeResult");
             const distance = document.getElementById("routeDistanceText");
@@ -1413,6 +1419,9 @@ async function refreshBackendRanking(emergencyId) {
         const btn = document.getElementById("dispatchBtn");
         if (btn) btn.textContent = `Dispatch ${required} → Emergency ${emergencyId}`;
         updateDashboard();
+        if (typeof updateRealMapRoute === "function") {
+            setTimeout(updateRealMapRoute, 80);
+        }
     } catch (error) {
         alert(`Could not calculate routes from C++ backend: ${error.message}`);
     }
