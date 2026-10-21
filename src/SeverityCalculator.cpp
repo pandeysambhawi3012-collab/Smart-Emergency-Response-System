@@ -1,11 +1,5 @@
 #include "SeverityCalculator.h"
 
-
-// ==========================================
-// PEOPLE AFFECTED SCORE
-// Maximum = 30
-// ==========================================
-
 int SeverityCalculator::calculatePeopleScore(int peopleAffected)
 {
     if (peopleAffected <= 0)
@@ -34,11 +28,6 @@ int SeverityCalculator::calculatePeopleScore(int peopleAffected)
     }
 }
 
-
-// ==========================================
-// INJURY SCORE
-// Maximum = 25
-// ==========================================
 
 int SeverityCalculator::calculateInjuryScore(int injurySeverity)
 {
@@ -69,11 +58,6 @@ int SeverityCalculator::calculateInjuryScore(int injurySeverity)
 }
 
 
-// ==========================================
-// RISK SCORE
-// Maximum = 25
-// ==========================================
-
 int SeverityCalculator::calculateRiskScore(int riskLevel)
 {
     if (riskLevel <= 0)
@@ -103,11 +87,6 @@ int SeverityCalculator::calculateRiskScore(int riskLevel)
 }
 
 
-// ==========================================
-// EMERGENCY TYPE SCORE
-// Maximum = 20
-// ==========================================
-
 int SeverityCalculator::calculateTypeScore(EmergencyType type)
 {
     switch (type)
@@ -135,11 +114,6 @@ int SeverityCalculator::calculateTypeScore(EmergencyType type)
     }
 }
 
-
-// ==========================================
-// COMPLETE SEVERITY CALCULATION
-// ==========================================
-
 int SeverityCalculator::calculateScore(const Emergency& emergency)
 {
     int peopleScore =
@@ -162,11 +136,6 @@ int SeverityCalculator::calculateScore(const Emergency& emergency)
 
     return totalScore;
 }
-
-
-// ==========================================
-// SEVERITY CLASSIFICATION
-// ==========================================
 
 std::string SeverityCalculator::classifySeverity(int score)
 {

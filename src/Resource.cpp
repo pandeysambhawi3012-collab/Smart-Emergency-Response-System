@@ -4,10 +4,6 @@
 
 using namespace std;
 
-// ==========================================
-// DEFAULT CONSTRUCTOR
-// ==========================================
-
 Resource::Resource()
 {
     resourceId = 0;
@@ -15,11 +11,6 @@ Resource::Resource()
     location = "";
     status = ResourceStatus::Available;
 }
-
-
-// ==========================================
-// PARAMETERIZED CONSTRUCTOR
-// ==========================================
 
 Resource::Resource(
     int id,
@@ -34,10 +25,6 @@ Resource::Resource(
     status = resourceStatus;
 }
 
-
-// ==========================================
-// GETTERS
-// ==========================================
 
 int Resource::getResourceId() const
 {
@@ -58,21 +45,10 @@ ResourceStatus Resource::getStatus() const
 {
     return status;
 }
-
-
-// ==========================================
-// SETTER
-// ==========================================
-
 void Resource::setStatus(ResourceStatus newStatus)
 {
     status = newStatus;
 }
-
-
-// ==========================================
-// DISPLAY RESOURCE
-// ==========================================
 
 void Resource::display() const
 {

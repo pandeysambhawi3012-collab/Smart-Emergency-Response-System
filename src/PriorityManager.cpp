@@ -7,17 +7,12 @@
 using namespace std;
 
 
-// ==========================================
-// COMPARATOR
-// ==========================================
 
 bool EmergencyComparator::operator()(
     const Emergency& first,
     const Emergency& second
 ) const
 {
-    // Rule 1:
-    // Higher severity score gets higher priority.
 
     if (first.getSeverityScore() != second.getSeverityScore())
     {
@@ -26,20 +21,11 @@ bool EmergencyComparator::operator()(
     }
 
 
-    // Rule 2:
-    // If severity is equal,
-    // more people affected gets higher priority.
-
     if (first.getPeopleAffected() != second.getPeopleAffected())
     {
         return first.getPeopleAffected()
                < second.getPeopleAffected();
     }
-
-
-    // Rule 3:
-    // If people affected is equal,
-    // higher risk gets higher priority.
 
     if (first.getRiskLevel() != second.getRiskLevel())
     {
@@ -48,18 +34,11 @@ bool EmergencyComparator::operator()(
     }
 
 
-    // Rule 4:
-    // If all previous values are equal,
-    // smaller emergency ID means earlier registration.
 
     return first.getEmergencyId()
            > second.getEmergencyId();
 }
 
-
-// ==========================================
-// ADD EMERGENCY
-// ==========================================
 
 void PriorityManager::addEmergency(
     const Emergency& emergency
@@ -68,10 +47,6 @@ void PriorityManager::addEmergency(
     priorityQueue.push(emergency);
 }
 
-
-// ==========================================
-// GET HIGHEST PRIORITY EMERGENCY
-// ==========================================
 
 Emergency PriorityManager::getHighestPriorityEmergency()
 {
@@ -88,11 +63,6 @@ Emergency PriorityManager::getHighestPriorityEmergency()
     return emergency;
 }
 
-
-// ==========================================
-// DISPLAY PRIORITY QUEUE
-// ==========================================
-
 void PriorityManager::displayPriorityQueue() const
 {
     if (priorityQueue.empty())
@@ -101,9 +71,6 @@ void PriorityManager::displayPriorityQueue() const
         return;
     }
 
-
-    // Create a temporary copy so that
-    // displaying does not destroy the original queue.
 
     auto tempQueue = priorityQueue;
 
@@ -147,20 +114,11 @@ void PriorityManager::displayPriorityQueue() const
     cout << "\n========================================\n";
 }
 
-
-// ==========================================
-// CHECK EMPTY
-// ==========================================
-
 bool PriorityManager::isEmpty() const
 {
     return priorityQueue.empty();
 }
 
-
-// ==========================================
-// QUEUE SIZE
-// ==========================================
 
 int PriorityManager::getQueueSize() const
 {
@@ -169,10 +127,6 @@ int PriorityManager::getQueueSize() const
     );
 }
 
-
-// ==========================================
-// CLEAR QUEUE
-// ==========================================
 
 void PriorityManager::clearQueue()
 {

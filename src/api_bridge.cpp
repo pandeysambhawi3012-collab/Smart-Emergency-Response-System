@@ -16,7 +16,7 @@
 
 using namespace std;
 
-// ---------- JSON and protocol helpers ----------
+
 
 string jsonEscape(const string& value) {
     string result;
@@ -147,9 +147,6 @@ bool parseResourceType(const string& name, ResourceType& type) {
     return true;
 }
 
-// The original console-menu modules print status text with cout.
-// This silences them while a call runs so stdout carries exactly one
-// JSON reply per command.
 struct QuietOutput {
     ostringstream sink;
     streambuf* old;
@@ -179,21 +176,17 @@ void printSuccess(const string& message) {
          << jsonEscape(message) << "\"}" << endl;
 }
 
-// ---------- Persistent C++ application state ----------
-
 int main() {
     EmergencyManager emergencyManager;
     PriorityManager priorityManager;
     ResourceManager resourceManager;
     Graph graph;
 
-    // emergency ID -> ID of the vehicle currently assigned to it
     map<int, int> assignments;
 
     {
         QuietOutput quiet;
 
-        // Initial resource inventory.
         resourceManager.addResource(Resource(
             101, ResourceType::Ambulance,
             "Hospital", ResourceStatus::Available));
@@ -214,8 +207,6 @@ int main() {
             401, ResourceType::RescueTeam,
             "Rescue Center", ResourceStatus::Available));
 
-        // Road network: the same Dehradun locations and distances the
-        // dashboard uses, so C++ Dijkstra answers every route query.
         graph.addLocation("ISBT");
         graph.addLocation("Clock Tower");
         graph.addLocation("Rajpur Road");
@@ -231,8 +222,6 @@ int main() {
         graph.addRoad("Patel Nagar", "Prem Nagar", 4);
         graph.addRoad("Prem Nagar", "Hospital", 6);
 
-        // Service stations, so fire/police/rescue vehicles are reachable.
-        // These connections and distances are placeholders: edit them.
         graph.addLocation("Fire Station");
         graph.addLocation("Police Station");
         graph.addLocation("Rescue Center");
@@ -328,7 +317,6 @@ int main() {
             continue;
         }
 
-        // ROUTE <from> <to>   (url-encoded names) -> C++ Dijkstra
         if (fields[0] == "ROUTE") {
             if (fields.size() < 3) {
                 printError("ROUTE requires a source and a destination");
@@ -351,9 +339,8 @@ int main() {
             continue;
         }
 
-        // QUEUE -> pending emergencies in priority-queue (heap) order
         if (fields[0] == "QUEUE") {
-            // Work on a copy so reading the queue does not empty it.
+
             PriorityManager copy = priorityManager;
             bool firstItem = true;
 
@@ -435,11 +422,7 @@ int main() {
             continue;
         }
 
-        // REGISTER <id> <type> <location> <people>
-        //         <injury> <risk> <time>
         if (fields[0] == "REGISTER") {
-            // Accept the older 6-field format temporarily:
-            // REGISTER, type, location, people, injury, risk, time.
             bool oldFormat = fields.size() == 7;
             bool newFormat = fields.size() == 8;
 
@@ -501,10 +484,6 @@ int main() {
                         continue;
                     }
 
-                    // The old emergency with this ID is finished, so the ID
-                    // can be reused: drop the old record, then rebuild the
-                    // priority queue from the emergencies still waiting so
-                    // no stale entry for this ID is left in the heap.
                     QuietOutput quiet;
 
                     emergencyManager.removeEmergency(id);
@@ -549,7 +528,6 @@ int main() {
             continue;
         }
 
-        // DISPATCH <emergency ID> [resource ID]
         if (fields[0] == "DISPATCH") {
             if (fields.size() < 2) {
                 printError("DISPATCH requires an emergency ID");
@@ -662,7 +640,6 @@ int main() {
             continue;
         }
 
-        // RELEASE <resource ID>
         if (fields[0] == "RELEASE") {
             if (fields.size() < 2) {
                 printError("RELEASE requires a resource ID");

@@ -39,10 +39,8 @@ public:
     EmergencyStatus newStatus
 );
 
-    // Remove an emergency record (used to free a resolved ID for reuse)
     bool removeEmergency(int emergencyId);
 
-    // Return number of emergencies
     int getEmergencyCount() const;
     const std::vector<Emergency>& getEmergencies() const;
 };

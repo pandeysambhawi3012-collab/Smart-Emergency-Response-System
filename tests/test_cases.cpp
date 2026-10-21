@@ -7,11 +7,8 @@
 
 using namespace std;
 
-
-// =====================================================
 // TEST 1
 // BASIC DIJKSTRA + ROUTE RECONSTRUCTION
-// =====================================================
 
 void testShortestRoute()
 {
@@ -39,12 +36,6 @@ void testShortestRoute()
         city.dijkstra("A", "E");
 
 
-    // Expected:
-    //
-    // A -> B -> C -> E
-    //
-    // 4 + 3 + 5 = 12 km
-
     assert(result.reachable == true);
 
     assert(result.distance == 12);
@@ -66,11 +57,8 @@ void testShortestRoute()
          << "Shortest route + reconstruction\n";
 }
 
-
-// =====================================================
 // TEST 2
 // SAME SOURCE AND DESTINATION
-// =====================================================
 
 void testSameLocation()
 {
@@ -99,11 +87,8 @@ void testSameLocation()
          << "Same source and destination\n";
 }
 
-
-// =====================================================
 // TEST 3
 // INVALID SOURCE
-// =====================================================
 
 void testInvalidSource()
 {
@@ -128,11 +113,8 @@ void testInvalidSource()
          << "Invalid source\n";
 }
 
-
-// =====================================================
 // TEST 4
 // INVALID DESTINATION
-// =====================================================
 
 void testInvalidDestination()
 {
@@ -158,10 +140,8 @@ void testInvalidDestination()
 }
 
 
-// =====================================================
-// TEST 5
+//TEST 5
 // UNREACHABLE LOCATION
-// =====================================================
 
 void testUnreachableRoute()
 {
@@ -190,10 +170,8 @@ void testUnreachableRoute()
 }
 
 
-// =====================================================
 // TEST 6
 // LOCATION SEARCH
-// =====================================================
 
 void testLocationSearch()
 {
@@ -225,10 +203,8 @@ void testLocationSearch()
 }
 
 
-// =====================================================
 // TEST 7
 // NEGATIVE ROAD
-// =====================================================
 
 void testNegativeRoad()
 {
@@ -255,11 +231,8 @@ void testNegativeRoad()
          << "Negative road rejection\n";
 }
 
-
-// =====================================================
 // TEST 8
 // SORTING AMBULANCES
-// =====================================================
 
 void testSorting()
 {
@@ -338,11 +311,9 @@ void testSorting()
          << "Ambulance route sorting\n";
 }
 
-
-// =====================================================
 // TEST 9
 // UNREACHABLE AMBULANCE IS LAST
-// =====================================================
+
 
 void testUnreachableSorting()
 {
@@ -397,10 +368,6 @@ void testUnreachableSorting()
          << "Unreachable route sorting\n";
 }
 
-
-// =====================================================
-// MAIN
-// =====================================================
 
 int main()
 {

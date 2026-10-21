@@ -9,10 +9,6 @@ int main()
 {
     ResourceManager manager;
 
-    // ==========================================
-    // ADD RESOURCES
-    // ==========================================
-
     manager.addResource(
         Resource(
             101,
@@ -49,15 +45,8 @@ int main()
         )
     );
 
-    // ==========================================
-    // DISPLAY RESOURCES
-    // ==========================================
 
     manager.displayAllResources();
-
-    // ==========================================
-    // FIND AVAILABLE AMBULANCE
-    // ==========================================
 
     Resource* ambulance =
         manager.findAvailableResource(
@@ -75,10 +64,6 @@ int main()
         cout << "\nNo ambulance available.\n";
     }
 
-    // ==========================================
-    // ALLOCATE AMBULANCE
-    // ==========================================
-
     bool allocated =
         manager.allocateResource(
             ResourceType::Ambulance
@@ -93,15 +78,7 @@ int main()
         cout << "\nNo ambulance available for allocation.\n";
     }
 
-    // ==========================================
-    // DISPLAY AFTER ALLOCATION
-    // ==========================================
-
     manager.displayAllResources();
-
-    // ==========================================
-    // RELEASE AMBULANCE
-    // ==========================================
 
     bool released =
         manager.releaseResource(101);
@@ -114,10 +91,6 @@ int main()
     {
         cout << "\nAmbulance could not be released.\n";
     }
-
-    // ==========================================
-    // FINAL DISPLAY
-    // ==========================================
 
     manager.displayAllResources();
 

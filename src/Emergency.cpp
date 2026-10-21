@@ -2,10 +2,6 @@
 
 #include <iostream>
 
-// ==========================================
-// DEFAULT CONSTRUCTOR
-// ==========================================
-
 Emergency::Emergency()
 {
     emergencyId = 0;
@@ -27,10 +23,6 @@ Emergency::Emergency()
     status = EmergencyStatus::Reported;
 }
 
-
-// ==========================================
-// PARAMETERIZED CONSTRUCTOR
-// ==========================================
 
 Emergency::Emergency(
     int id,
@@ -55,7 +47,6 @@ Emergency::Emergency(
     timeReported = time;
     requiredResource = resource;
 
-    // Severity will be calculated by SeverityCalculator
     severityScore = 0;
     severityLevel = "Not Calculated";
 
@@ -142,10 +133,6 @@ EmergencyStatus Emergency::getStatus() const
 }
 
 
-// ==========================================
-// SETTERS
-// ==========================================
-
 void Emergency::setSeverityScore(int score)
 {
     severityScore = score;
@@ -169,10 +156,6 @@ void Emergency::setStatus(EmergencyStatus newStatus)
     status = newStatus;
 }
 
-
-// ==========================================
-// DISPLAY EMERGENCY
-// ==========================================
 
 void Emergency::display() const
 {

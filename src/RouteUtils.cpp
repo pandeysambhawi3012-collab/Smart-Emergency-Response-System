@@ -5,17 +5,6 @@
 
 using namespace std;
 
-
-// =====================================================
-// SORT ROUTES BY DISTANCE
-//
-// Reachable routes:
-//     shortest → longest
-//
-// Unreachable routes:
-//     placed at the end
-// =====================================================
-
 void sortRoutesByDistance(
     vector<AmbulanceRoute>& routes)
 {
@@ -26,8 +15,6 @@ void sortRoutesByDistance(
         [](const AmbulanceRoute& a,
            const AmbulanceRoute& b)
         {
-            // Reachable route comes before
-            // unreachable route
             if (a.route.reachable !=
                 b.route.reachable)
             {
@@ -35,7 +22,6 @@ void sortRoutesByDistance(
                        b.route.reachable;
             }
 
-            // Both unreachable
             if (!a.route.reachable &&
                 !b.route.reachable)
             {
@@ -43,17 +29,12 @@ void sortRoutesByDistance(
                        b.ambulanceID;
             }
 
-            // Both reachable
             return a.route.distance <
                    b.route.distance;
         }
     );
 }
 
-
-// =====================================================
-// DISPLAY SORTED ROUTES
-// =====================================================
 
 void displaySortedRoutes(
     const vector<AmbulanceRoute>& routes)

@@ -9,10 +9,6 @@
 using namespace std;
 
 
-// ==========================================
-// GENERATE EMERGENCY ID
-// ==========================================
-
 int EmergencyManager::generateEmergencyId() const
 {
     if (emergencies.empty())
@@ -34,10 +30,6 @@ int EmergencyManager::generateEmergencyId() const
 }
 
 
-// ==========================================
-// REGISTER EMERGENCY
-// ==========================================
-
 void EmergencyManager::registerEmergency()
 {
     cout << "\n========================================\n";
@@ -48,10 +40,6 @@ void EmergencyManager::registerEmergency()
 
     cout << "Emergency ID: " << id << "\n";
 
-
-    // --------------------------------------
-    // EMERGENCY TYPE
-    // --------------------------------------
 
     int typeChoice;
 
@@ -96,10 +84,6 @@ void EmergencyManager::registerEmergency()
     }
 
 
-    // --------------------------------------
-    // LOCATION
-    // --------------------------------------
-
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
     string location;
@@ -117,10 +101,6 @@ void EmergencyManager::registerEmergency()
     while (location.empty());
 
 
-    // --------------------------------------
-    // PEOPLE AFFECTED
-    // --------------------------------------
-
     int peopleAffected;
 
     cout << "Enter number of people affected: ";
@@ -132,10 +112,6 @@ void EmergencyManager::registerEmergency()
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
     }
 
-
-    // --------------------------------------
-    // INJURY SEVERITY
-    // --------------------------------------
 
     int injurySeverity;
 
@@ -150,10 +126,6 @@ void EmergencyManager::registerEmergency()
     }
 
 
-    // --------------------------------------
-    // RISK LEVEL
-    // --------------------------------------
-
     int riskLevel;
 
     cout << "Enter risk level (0-10): ";
@@ -166,10 +138,6 @@ void EmergencyManager::registerEmergency()
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
     }
 
-
-    // --------------------------------------
-    // TIME REPORTED
-    // --------------------------------------
 
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
@@ -187,10 +155,6 @@ void EmergencyManager::registerEmergency()
     }
     while (timeReported.empty());
 
-
-    // --------------------------------------
-    // AUTOMATIC RESOURCE SELECTION
-    // --------------------------------------
 
     string requiredResource;
 
@@ -258,11 +222,6 @@ void EmergencyManager::registerEmergency()
     cout << "\nAutomatically selected resource: "
          << requiredResource << "\n";
 
-
-    // --------------------------------------
-    // CREATE EMERGENCY OBJECT
-    // --------------------------------------
-
     Emergency emergency(
         id,
         type,
@@ -275,10 +234,6 @@ void EmergencyManager::registerEmergency()
     );
 
 
-    // --------------------------------------
-    // CALCULATE SEVERITY AND PRIORITY
-    // --------------------------------------
-
     int score =
         SeverityCalculator::calculateScore(emergency);
 
@@ -288,13 +243,9 @@ void EmergencyManager::registerEmergency()
     emergency.setSeverityScore(score);
     emergency.setSeverityLevel(level);
 
-    // Priority category follows the calculated severity.
+    
     emergency.setPriority(level);
 
-
-    // --------------------------------------
-    // STORE EMERGENCY
-    // --------------------------------------
 
     emergencies.push_back(emergency);
 
@@ -309,9 +260,7 @@ void EmergencyManager::registerEmergency()
 }
 
 
-// ==========================================
-// DISPLAY ALL EMERGENCIES
-// ==========================================
+
 
 void EmergencyManager::displayAllEmergencies() const
 {
@@ -332,10 +281,6 @@ void EmergencyManager::displayAllEmergencies() const
 }
 
 
-// ==========================================
-// SEARCH EMERGENCY
-// ==========================================
-
 Emergency* EmergencyManager::searchEmergency(int emergencyId)
 {
     for (Emergency& emergency : emergencies)
@@ -349,10 +294,6 @@ Emergency* EmergencyManager::searchEmergency(int emergencyId)
     return nullptr;
 }
 
-
-// ==========================================
-// DISPLAY SPECIFIC EMERGENCY
-// ==========================================
 
 void EmergencyManager::displayEmergency(int emergencyId) const
 {
@@ -371,20 +312,12 @@ void EmergencyManager::displayEmergency(int emergencyId) const
 }
 
 
-// ==========================================
-// GET EMERGENCIES
-// ==========================================
-
 const vector<Emergency>&
 EmergencyManager::getEmergencies() const
 {
     return emergencies;
 }
 
-
-// ==========================================
-// UPDATE EMERGENCY STATUS
-// ==========================================
 
 void EmergencyManager::updateEmergencyStatus(
     int emergencyId,

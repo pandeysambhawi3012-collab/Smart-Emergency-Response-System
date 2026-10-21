@@ -5,10 +5,6 @@
 using namespace std;
 
 
-// ==========================================
-// ADD RESOURCE
-// ==========================================
-
 void ResourceManager::addResource(
     const Resource& resource
 )
@@ -18,10 +14,6 @@ void ResourceManager::addResource(
     cout << "\nResource added successfully.\n";
 }
 
-
-// ==========================================
-// DISPLAY ALL RESOURCES
-// ==========================================
 
 void ResourceManager::displayAllResources() const
 {
@@ -41,11 +33,6 @@ void ResourceManager::displayAllResources() const
     }
 }
 
-
-// ==========================================
-// FIND AVAILABLE RESOURCE
-// ==========================================
-
 Resource* ResourceManager::findAvailableResource(
     ResourceType type
 )
@@ -62,10 +49,6 @@ Resource* ResourceManager::findAvailableResource(
     return nullptr;
 }
 
-
-// ==========================================
-// ALLOCATE RESOURCE
-// ==========================================
 
 bool ResourceManager::allocateResource(
     ResourceType type
@@ -86,10 +69,6 @@ bool ResourceManager::allocateResource(
     return true;
 }
 
-
-// ==========================================
-// RELEASE RESOURCE
-// ==========================================
 
 bool ResourceManager::releaseResource(
     int resourceId
@@ -115,11 +94,6 @@ bool ResourceManager::releaseResource(
 
     return false;
 }
-
-
-// ==========================================
-// GET RESOURCE COUNT
-// ==========================================
 
 int ResourceManager::getResourceCount() const
 {

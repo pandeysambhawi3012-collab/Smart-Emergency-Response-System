@@ -8,10 +8,6 @@
 using namespace std;
 
 
-// =====================================================
-// ADD LOCATION
-// =====================================================
-
 void Graph::addLocation(string id)
 {
     // Prevent duplicate locations
@@ -25,17 +21,9 @@ void Graph::addLocation(string id)
 
     locations.push_back(id);
 
-    // Create empty adjacency list
-    // for this location
     adj.push_back({});
 }
 
-
-// =====================================================
-// FIND LOCATION
-// Linear Search
-// Time Complexity: O(V)
-// =====================================================
 
 int Graph::findLocation(string id)
 {
@@ -53,9 +41,6 @@ int Graph::findLocation(string id)
 }
 
 
-// =====================================================
-// ADD ROAD
-// =====================================================
 
 void Graph::addRoad(
     string from,
@@ -65,32 +50,23 @@ void Graph::addRoad(
     int u = findLocation(from);
     int v = findLocation(to);
 
-    // Check locations
     if (u == -1 || v == -1)
     {
         cout << "Invalid location!\n";
         return;
     }
 
-    // Dijkstra cannot use negative weights
     if (weight < 0)
     {
         cout << "Road weight cannot be negative!\n";
         return;
     }
 
-    // Add road from -> to
     adj[u].push_back({v, weight});
 
-    // Our simulated city uses two-way roads
-    // Add road from <- to
     adj[v].push_back({u, weight});
 }
 
-
-// =====================================================
-// DISPLAY NETWORK
-// =====================================================
 
 void Graph::displayNetwork()
 {
@@ -120,17 +96,6 @@ void Graph::displayNetwork()
     }
 }
 
-
-// =====================================================
-// DIJKSTRA SHORTEST PATH
-//
-// Time Complexity:
-// O((V + E) log V)
-//
-// Space Complexity:
-// O(V + E)
-// =====================================================
-
 RouteResult Graph::dijkstra(
     string source,
     string destination)
@@ -138,7 +103,6 @@ RouteResult Graph::dijkstra(
     int start = findLocation(source);
     int end = findLocation(destination);
 
-    // Invalid locations
     if (start == -1 || end == -1)
     {
         return {
@@ -151,24 +115,16 @@ RouteResult Graph::dijkstra(
     const int INF =
         numeric_limits<int>::max();
 
-    // Shortest distance from source
     vector<int> distance(
         locations.size(),
         INF
     );
 
-    // Parent/predecessor array
-    // Used for route reconstruction
     vector<int> parent(
         locations.size(),
         -1
     );
 
-    // Min-priority queue
-    //
-    // pair:
-    // first  = current shortest distance
-    // second = node index
     priority_queue<
         pair<int, int>,
         vector<pair<int, int>>,
@@ -176,19 +132,12 @@ RouteResult Graph::dijkstra(
     > pq;
 
 
-    // Source distance = 0
     distance[start] = 0;
 
     pq.push({
         0,
         start
     });
-
-
-    // =================================================
-    // MAIN DIJKSTRA LOOP
-    // =================================================
-
     while (!pq.empty())
     {
         int currentDistance =
@@ -199,29 +148,21 @@ RouteResult Graph::dijkstra(
 
         pq.pop();
 
-
-        // Ignore outdated priority queue entry
         if (currentDistance !=
             distance[currentNode])
         {
             continue;
         }
 
-
-        // Destination reached
         if (currentNode == end)
         {
             break;
         }
-
-
-        // Check neighbouring nodes
         for (auto edge : adj[currentNode])
         {
             int neighbour = edge.first;
             int weight = edge.second;
 
-            // Avoid integer overflow
             if (currentDistance >
                 INF - weight)
             {
@@ -231,8 +172,6 @@ RouteResult Graph::dijkstra(
             int newDistance =
                 currentDistance + weight;
 
-
-            // Found a shorter route
             if (newDistance <
                 distance[neighbour])
             {
@@ -252,10 +191,6 @@ RouteResult Graph::dijkstra(
     }
 
 
-    // =================================================
-    // NO ROUTE
-    // =================================================
-
     if (distance[end] == INF)
     {
         return {
@@ -265,10 +200,6 @@ RouteResult Graph::dijkstra(
         };
     }
 
-
-    // =================================================
-    // ROUTE RECONSTRUCTION
-    // =================================================
 
     vector<string> path;
 
@@ -283,14 +214,6 @@ RouteResult Graph::dijkstra(
         current = parent[current];
     }
 
-
-    // Path currently:
-    //
-    // E -> C -> B -> A
-    //
-    // Reverse:
-    //
-    // A -> B -> C -> E
 
     reverse(
         path.begin(),
