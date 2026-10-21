@@ -491,9 +491,33 @@ int main() {
                 continue;
             }
 
-            if (newFormat && emergencyManager.searchEmergency(id)) {
-                printError("Emergency ID already exists");
-                continue;
+            if (newFormat) {
+                Emergency* existing = emergencyManager.searchEmergency(id);
+
+                if (existing) {
+                    if (existing->getStatus() != EmergencyStatus::Resolved) {
+                        printError(
+                            "Emergency ID already exists and is still active");
+                        continue;
+                    }
+
+                    // The old emergency with this ID is finished, so the ID
+                    // can be reused: drop the old record, then rebuild the
+                    // priority queue from the emergencies still waiting so
+                    // no stale entry for this ID is left in the heap.
+                    QuietOutput quiet;
+
+                    emergencyManager.removeEmergency(id);
+                    priorityManager.clearQueue();
+
+                    for (const Emergency& e :
+                         emergencyManager.getEmergencies()) {
+                        if (e.getStatus() == EmergencyStatus::Reported ||
+                            e.getStatus() == EmergencyStatus::Pending) {
+                            priorityManager.addEmergency(e);
+                        }
+                    }
+                }
             }
 
             if (oldFormat) {

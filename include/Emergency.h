@@ -1,91 +1,50 @@
-#ifndef EMERGENCY_H
-#define EMERGENCY_H
-
+#ifndef EMERGENCY_MANAGER_H
+#define EMERGENCY_MANAGER_H
 #include <string>
+#include <vector>
 
-enum class EmergencyType
-{
-    Accident,
-    Fire,
-    Medical,
-    NaturalDisaster,
-    Crime,
-    Other
-};
+#include "Emergency.h"
 
-enum class EmergencyStatus
-{
-    Reported,
-    Pending,
-    ResourceAssigned,
-    InProgress,
-    Resolved
-};
-
-class Emergency
+class EmergencyManager
 {
 private:
 
-    int emergencyId;
-    EmergencyType type;
-    std::string location;
+    std::vector<Emergency> emergencies;
 
-    int peopleAffected;
-    int injurySeverity;
-    int riskLevel;
-
-    std::string timeReported;
-    std::string requiredResource;
-
-    int severityScore;
-    std::string severityLevel;
-    std::string priority;
-
-    EmergencyStatus status;
+    int generateEmergencyId() const;
 
 public:
+    Emergency registerEmergencyFromAPI(
+    int id,
+    EmergencyType type,
+    const std::string& location,
+    int peopleAffected,
+    int injurySeverity,
+    int riskLevel,
+    const std::string& timeReported
+);
+    // Register a new emergency
+    void registerEmergency();
 
-    // Default constructor
-    Emergency();
+    // Display all registered emergencies
+    void displayAllEmergencies() const;
 
-    // Parameterized constructor
-    Emergency(
-        int id,
-        EmergencyType emergencyType,
-        const std::string& emergencyLocation,
-        int affected,
-        int injury,
-        int risk,
-        const std::string& time,
-        const std::string& resource
-    );
+    // Search emergency using ID
+    Emergency* searchEmergency(int emergencyId);
 
-    // Getters
-    int getEmergencyId() const;
-    EmergencyType getType() const;
-    std::string getLocation() const;
+    // Display a specific emergency
+    void displayEmergency(int emergencyId) const;
+     void updateEmergencyStatus(
+    int emergencyId,
+    EmergencyStatus newStatus
+);
 
-    int getPeopleAffected() const;
-    int getInjurySeverity() const;
-    int getRiskLevel() const;
+    // Remove an emergency record (used to free a resolved ID for reuse)
+    bool removeEmergency(int emergencyId);
 
-    std::string getTimeReported() const;
-    std::string getRequiredResource() const;
-
-    int getSeverityScore() const;
-    std::string getSeverityLevel() const;
-    std::string getPriority() const;
-
-    EmergencyStatus getStatus() const;
-
-    // Setters
-    void setSeverityScore(int score);
-    void setSeverityLevel(const std::string& level);
-    void setPriority(const std::string& priorityLevel);
-    void setStatus(EmergencyStatus newStatus);
-
-    // Display emergency information
-    void display() const;
+    // Return number of emergencies
+    int getEmergencyCount() const;
+    const std::vector<Emergency>& getEmergencies() const;
 };
 
 #endif

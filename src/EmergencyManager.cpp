@@ -455,3 +455,18 @@ Emergency EmergencyManager::registerEmergencyFromAPI(
     emergencies.push_back(emergency);
     return emergency;
 }
+
+
+bool EmergencyManager::removeEmergency(int emergencyId)
+{
+    for (auto it = emergencies.begin(); it != emergencies.end(); ++it)
+    {
+        if (it->getEmergencyId() == emergencyId)
+        {
+            emergencies.erase(it);
+            return true;
+        }
+    }
+
+    return false;
+}
