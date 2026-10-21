@@ -20,6 +20,17 @@ int EmergencyManager::findEmergencyIndex(const string& id) const
     return -1;
 }
 
+void EmergencyManager::rebuildPriorityQueue()
+{
+    priorityQueue = EmergencyPriorityQueue();
+
+    for (const Emergency& emergency : emergencies)
+    {
+        if (emergency.getStatus() == "PENDING")
+            priorityQueue.insert(emergency);
+    }
+}
+
 bool EmergencyManager::registerEmergency(
     const string& id,
     const string& type,
@@ -36,10 +47,12 @@ bool EmergencyManager::registerEmergency(
         return false;
 
     Emergency emergency(id, type, location,
-                        severity, nextRegistrationOrder++);
+                        severity, nextRegistrationOrder);
+
+    nextRegistrationOrder++;
 
     emergencies.push_back(emergency);
-    priorityQueue.insert(emergency);
+    rebuildPriorityQueue();
 
     return true;
 }
@@ -64,7 +77,11 @@ bool EmergencyManager::updateEmergencyStatus(
     if (index == -1)
         return false;
 
-    return emergencies[index].updateStatus(newStatus);
+    if (!emergencies[index].updateStatus(newStatus))
+        return false;
+
+    rebuildPriorityQueue();
+    return true;
 }
 
 bool EmergencyManager::assignAmbulance(
@@ -82,7 +99,24 @@ bool EmergencyManager::assignAmbulance(
 
 bool EmergencyManager::processNextEmergency(Emergency& result)
 {
-    return priorityQueue.removeHighestPriority(result);
+    if (!priorityQueue.removeHighestPriority(result))
+        return false;
+
+    int index = findEmergencyIndex(result.getID());
+
+    if (index == -1)
+        return false;
+
+    if (!emergencies[index].updateStatus("DISPATCHED"))
+    {
+        rebuildPriorityQueue();
+        return false;
+    }
+
+    result = emergencies[index];
+    rebuildPriorityQueue();
+
+    return true;
 }
 
 void EmergencyManager::displayAllEmergencies() const
