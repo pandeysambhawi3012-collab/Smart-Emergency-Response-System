@@ -15,6 +15,7 @@ private:
     int nextRegistrationOrder;
 
     int findEmergencyIndex(const string& id) const;
+    void rebuildPriorityQueue();
 
 public:
     EmergencyManager();
