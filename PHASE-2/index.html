@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Smart Emergency Response System</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- ================= OPENING SCREEN ================= -->
+
+    <section id="welcomeScreen" class="welcome-screen">
+
+        <div class="welcome-background"></div>
+
+        <div class="welcome-content">
+
+            <div class="emergency-logo">
+                🚑
+            </div>
+
+            <p class="system-label">
+                SMART EMERGENCY RESPONSE
+            </p>
+
+            <h1>
+                Faster Response.<br>
+                <span>Better Decisions.</span>
+            </h1>
+
+            <p class="welcome-description">
+                A simulated emergency response system
+                for priority management, ambulance allocation
+                and shortest-route calculation.
+            </p>
+
+            <button
+                class="start-btn"
+                onclick="openDashboard()"
+            >
+                Open Emergency System
+                <span>→</span>
+            </button>
+
+            <div class="features">
+
+                <div>
+                    <strong>⚡</strong>
+                    Priority
+                </div>
+
+                <div>
+                    <strong>🚑</strong>
+                    Resources
+                </div>
+
+                <div>
+                    <strong>🗺️</strong>
+                    Route guidance
+                </div>
+
+                <div>
+                    <strong>📍</strong>
+                    Dispatch
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================= DASHBOARD ================= -->
+
+    <div
+        id="dashboard"
+        class="dashboard-page hidden"
+    >
+
+        <!-- HEADER -->
+
+        <header class="header">
+
+            <div class="brand">
+
+                <div class="brand-icon">
+                    🚑
+                </div>
+
+                <div>
+
+                    <h2>
+                        Smart Emergency
+                    </h2>
+
+                    <span>
+                        Response System
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="header-right">
+
+                <div class="online-status">
+
+                    <span></span>
+
+                    System Online
+
+                </div>
+
+                <button
+                    class="exit-btn"
+                    onclick="returnHome()"
+                >
+                    Exit
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <!-- MAIN -->
+
+        <main class="main-container">
+
+            <!-- PAGE TITLE -->
+
+            <section class="page-heading">
+
+                <div>
+
+                    <p>
+                        EMERGENCY CONTROL CENTER
+                    </p>
+
+                    <h1>
+                        Response Dashboard
+                    </h1>
+
+                </div>
+
+                <div class="date-box">
+                    <span>STATUS</span>
+                    <strong>Operational</strong>
+                </div>
+
+            </section>
+
+
+            <!-- STAT CARDS -->
+
+            <section class="stats">
+
+                <div class="stat-card">
+
+                    <div class="stat-icon green">
+                        🚨
+                    </div>
+
+                    <div>
+                        <span>Emergencies</span>
+                        <strong id="emergencyCount">
+                            0
+                        </strong>
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-icon green">
+                        🚑
+                    </div>
+
+                    <div>
+                        <span>Available Ambulances</span>
+                        <strong id="availableCount">
+                            0
+                        </strong>
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-icon green">
+                        🗺️
+                    </div>
+
+                    <div>
+                        <span>Active Route</span>
+                        <strong id="routeDistance">
+                            --
+                        </strong>
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-icon red">
+                        ⚡
+                    </div>
+
+                    <div>
+                        <span>Highest Priority</span>
+                        <strong id="priorityDisplay">
+                            --
+                        </strong>
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- TWO COLUMN AREA -->
+
+            <section class="main-grid">
+
+                <!-- EMERGENCY -->
+
+                <div class="card">
+
+                    <div class="card-header">
+
+                        <div>
+
+                            <span class="section-label">
+                                EMERGENCY
+                            </span>
+
+                            <h2>
+                                Register Emergency
+                            </h2>
+
+                        </div>
+
+                        <div class="card-icon">
+                            🚨
+                        </div>
+
+                    </div>
+
+
+                    <div class="form">
+
+                        <div class="field">
+
+                            <label>
+                                Emergency ID
+                            </label>
+
+                            <input
+                                id="emergencyId"
+                                type="text"
+                                placeholder="E-101"
+                            >
+
+                        </div>
+
+
+                        <div class="field">
+
+                            <label>
+                                Emergency Type
+                            </label>
+
+                            <select id="emergencyType">
+
+                                <option>
+                                    Accident
+                                </option>
+
+                                 <option>
+                                    Crime
+                                </option>
+
+                                <option>
+                                   Natural Disaster
+                                </option>
+
+                                <option>
+                                    Medical Emergency
+                                </option>
+
+                                <option>
+                                    Fire
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="field">
+
+                            <label>
+                                Location
+                            </label>
+
+                            <select id="emergencyLocation">
+
+                                <option>
+                                    Clock Tower
+                                </option>
+
+                                <option>
+                                    ISBT
+                                </option>
+
+                                <option>
+                                    Rajpur Road
+                                </option>
+
+                                <option>
+                                    Patel Nagar
+                                </option>
+
+                                <option>
+                                    Prem Nagar
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="field">
+
+                            <label>
+                                Severity
+                            </label>
+
+                            <select id="severity">
+
+                                <option value="5">
+                                    5 — Critical
+                                </option>
+
+                                <option value="4">
+                                    4 — High
+                                </option>
+
+                                <option value="3">
+                                    3 — Medium
+                                </option>
+
+                                <option value="2">
+                                    2 — Low
+                                </option>
+
+                                <option value="1">
+                                    1 — Very Low
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        class="green-btn"
+                        onclick="registerEmergency()"
+                    >
+                        Register Emergency
+                    </button>
+
+                </div>
+
+
+                <!-- PRIORITY QUEUE -->
+
+                <div class="card">
+
+                    <div class="card-header">
+
+                        <div>
+
+                            <span class="section-label">
+                                PRIORITY QUEUE
+                            </span>
+
+                            <h2>
+                                Emergency Priority
+                            </h2>
+
+                        </div>
+
+                        <div class="card-icon">
+                            ⚡
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        id="priorityQueue"
+                        class="priority-list"
+                    >
+
+                        <div class="empty-state">
+                            No pending emergencies
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- AMBULANCES -->
+
+            <section class="card">
+
+                <div class="card-header">
+
+                    <div>
+
+                        <span class="section-label">
+                            RESOURCES
+                        </span>
+
+                        <h2>
+                            Response Fleet
+                        </h2>
+
+                    </div>
+
+                    <button
+                        class="outline-btn"
+                        onclick="rankAmbulances()"
+                    >
+                        Sort by Distance
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="ambulanceList"
+                    class="ambulance-grid"
+                >
+                </div>
+
+                <div id="routeResult" class="route-result hidden integrated-route-result">
+                    <div class="route-distance">
+                        <span>SHORTEST ROUTE</span>
+                        <strong id="routeDistanceText">--</strong>
+                    </div>
+                    <div class="path-section">
+                        <span>ROUTE</span>
+                        <div id="routePath" class="path"></div>
+                    </div>
+                </div>
+
+                <!-- Compact directions map: expand only when needed -->
+                <div class="directions-map-wrap">
+                    <div class="directions-map-heading">
+                        <div>
+                            <span class="section-label">DIRECTIONS</span>
+                            <h3>Route map</h3>
+                            <p id="realRouteSummary">Choose an emergency and ambulance to calculate directions.</p>
+                        </div>
+                        <div class="map-actions">
+                            <button type="button" class="outline-btn" id="locateMeBtn">Use My GPS</button>
+                            <button type="button" class="outline-btn" id="toggleMapBtn" aria-expanded="false">Expand map ＋</button>
+                        </div>
+                    </div>
+                    <div id="liveMapStatus" class="map-status" role="status">Expand the map when you need road directions.</div>
+                    <div id="mapExpandable" class="map-expandable collapsed">
+                        <div id="liveMap"></div>
+                        <div class="map-legend">
+                            <span><i class="legend-dot emergency-dot"></i> Emergency</span>
+                            <span><i class="legend-dot hospital-dot"></i> Hospital</span>
+                            <span><i class="legend-dot ambulance-dot"></i> Ambulance base (not live GPS)</span>
+                        </div>
+                    </div>
+                    <div class="map-route-footer">
+                        <strong id="realRouteTitle">Ambulance → Emergency → Hospital</strong>
+                        <a id="openGoogleMapsLink" href="#" target="_blank" rel="noopener noreferrer" hidden>Open directions in Google Maps ↗</a>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- DISPATCH -->
+
+            <section class="dispatch-card">
+
+                <div class="dispatch-icon">
+                    🚑
+                </div>
+
+                <div class="dispatch-content">
+
+                    <span>
+                        DISPATCH CENTER
+                    </span>
+
+                    <h2>
+                        Ready for Emergency Response
+                    </h2>
+
+                    <p id="dispatchMessage">
+                        Register an emergency and
+                        calculate a route to begin dispatch.
+                    </p>
+
+                </div>
+
+                <button
+                    id="dispatchBtn"
+                    class="dispatch-btn"
+                    onclick="dispatchAmbulance()"
+                >
+                    Dispatch Ambulance
+                </button>
+
+            </section>
+
+        </main>
+
+
+        <footer>
+
+            Smart Emergency Response System
+
+            <span>
+                Phase-II Prototype
+            </span>
+
+        </footer>
+
+    </div>
+
+
+    <script src="script.js"></script>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+</body>
+
+</html>
