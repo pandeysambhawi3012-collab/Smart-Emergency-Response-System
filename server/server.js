@@ -1,4 +1,3 @@
-
 const express = require("express");
 const path = require("path");
 const { spawn } = require("child_process");
@@ -10,9 +9,7 @@ const PORT = 8080;
 app.use(express.json());
 
 const frontendPath = path.join(__dirname, "..", "frontend");
-// Windows builds api_bridge.exe; Linux/macOS builds api_bridge.
-const bridgeName =
-    process.platform === "win32" ? "api_bridge.exe" : "api_bridge";
+const bridgeName = process.platform === "win32" ? "api_bridge.exe" : "api_bridge";
 const bridgePath = path.join(__dirname, "..", bridgeName);
 
 app.use(express.static(frontendPath));
@@ -21,38 +18,11 @@ app.get("/", (req, res) => {
     res.sendFile(path.join(frontendPath, "index.html"));
 });
 
-// Keep one C++ process alive so state persists between requests.
+// Spawn persistent C++ daemon
 const bridge = spawn(bridgePath, [], {
     cwd: path.dirname(bridgePath),
     windowsHide: true,
     stdio: ["pipe", "pipe", "pipe"]
-});
-
-const waiting = [];
-const responses = [];
-
-const stdoutLines = readline.createInterface({
-    input: bridge.stdout
-});
-
-stdoutLines.on("line", (line) => {
-    let result;
-
-    try {
-        result = JSON.parse(line);
-    } catch {
-        // Ignore non-JSON startup messages from existing C++ modules.
-        console.log("[C++ output]", line);
-        return;
-    }
-
-    const resolve = waiting.shift();
-
-    if (resolve) {
-        resolve(result);
-    } else {
-        responses.push(result);
-    }
 });
 
 bridge.stderr.on("data", (data) => {
@@ -61,12 +31,20 @@ bridge.stderr.on("data", (data) => {
 
 bridge.on("error", (error) => {
     console.error("Could not start C++ bridge:", error.message);
-    console.error("Build it first (see build.bat) and keep it in the project root.");
+    console.error("Build it first (see build_bridge.bat) and keep it in the project root.");
 });
 
 bridge.on("exit", (code) => {
     console.error("C++ bridge exited with code:", code);
 });
+
+const stdoutLines = readline.createInterface({
+    input: bridge.stdout
+});
+
+// Sequential FIFO command queue to prevent concurrent request collisions
+const commandQueue = [];
+let isProcessingCommand = false;
 
 function bridgeRequest(command) {
     return new Promise((resolve, reject) => {
@@ -75,23 +53,48 @@ function bridgeRequest(command) {
             return;
         }
 
-        // Use a queued response if one is already waiting.
-        if (responses.length > 0) {
-            // A queued response belongs to an earlier request; don't
-            // reuse it for a new command.
-            reject(new Error("Unexpected queued C++ response"));
-            return;
+        commandQueue.push({ command, resolve, reject });
+        processNextCommand();
+    });
+}
+
+function processNextCommand() {
+    if (isProcessingCommand || commandQueue.length === 0) return;
+    isProcessingCommand = true;
+
+    const { command, resolve, reject } = commandQueue.shift();
+
+    const onLine = (line) => {
+        let result;
+        try {
+            result = JSON.parse(line);
+        } catch {
+            return; // Ignore non-JSON C++ logs
         }
 
-        waiting.push(resolve);
+        cleanup();
+        resolve(result);
+        isProcessingCommand = false;
+        processNextCommand();
+    };
 
-        bridge.stdin.write(command + "\n", (error) => {
-            if (error) {
-                const index = waiting.indexOf(resolve);
-                if (index !== -1) waiting.splice(index, 1);
-                reject(error);
-            }
-        });
+    const onError = (err) => {
+        cleanup();
+        reject(err);
+        isProcessingCommand = false;
+        processNextCommand();
+    };
+
+    function cleanup() {
+        stdoutLines.off("line", onLine);
+        bridge.off("error", onError);
+    }
+
+    stdoutLines.on("line", onLine);
+    bridge.once("error", onError);
+
+    bridge.stdin.write(command + "\n", (err) => {
+        if (err) onError(err);
     });
 }
 
@@ -106,7 +109,6 @@ function errorResponse(res, error, status = 500) {
     });
 }
 
-// Shortest route, calculated by the C++ Graph / Dijkstra module.
 async function routeBetween(source, destination) {
     const result = await bridgeRequest(
         `ROUTE\t${encodeField(source)}\t${encodeField(destination)}`
@@ -140,7 +142,6 @@ app.get("/api/state", async (req, res) => {
     }
 });
 
-// Pending emergencies in the order the C++ priority queue (heap) serves them.
 app.get("/api/queue", async (req, res) => {
     try {
         res.json(await bridgeRequest("QUEUE"));
@@ -149,9 +150,8 @@ app.get("/api/queue", async (req, res) => {
     }
 });
 
-// Register an emergency using the same ID supplied by the frontend.
 app.post("/api/emergencies", async (req, res) => {
-    const {
+    let {
         id,
         type,
         location,
@@ -161,36 +161,30 @@ app.post("/api/emergencies", async (req, res) => {
         timeReported
     } = req.body;
 
-    const emergencyId = Number(id);
-
-    if (
-        !Number.isInteger(emergencyId) ||
-        emergencyId <= 0 ||
-        typeof type !== "string" ||
-        typeof location !== "string" ||
-        !location.trim() ||
-        !Number.isInteger(peopleAffected) ||
-        !Number.isInteger(injurySeverity) ||
-        !Number.isInteger(riskLevel) ||
-        peopleAffected < 1 ||
-        injurySeverity < 0 || injurySeverity > 10 ||
-        riskLevel < 0 || riskLevel > 10
-    ) {
-        return res.status(400).json({
-            success: false,
-            error: "Invalid emergency data"
-        });
+    let emergencyId = Number(id);
+    if (!Number.isInteger(emergencyId) || emergencyId <= 0) {
+        try {
+            const state = await bridgeRequest("STATE");
+            const existingIds = (state.emergencies || []).map(e => Number(e.id));
+            emergencyId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1001;
+        } catch {
+            emergencyId = 1001;
+        }
     }
+
+    peopleAffected = Number.isInteger(Number(peopleAffected)) && Number(peopleAffected) >= 1 ? Number(peopleAffected) : 1;
+    injurySeverity = Number.isInteger(Number(injurySeverity)) && Number(injurySeverity) >= 0 ? Math.min(10, Number(injurySeverity)) : 5;
+    riskLevel = Number.isInteger(Number(riskLevel)) && Number(riskLevel) >= 0 ? Math.min(10, Number(riskLevel)) : 5;
 
     const command = [
         "REGISTER",
         emergencyId,
-        encodeField(type),
-        encodeField(location.trim()),
+        encodeField(type || "Accident"),
+        encodeField((location || "Clock Tower").trim()),
         peopleAffected,
         injurySeverity,
         riskLevel,
-        encodeField(timeReported || new Date().toISOString())
+        encodeField(timeReported || new Date().toLocaleTimeString())
     ].join("\t");
 
     try {
@@ -201,9 +195,6 @@ app.post("/api/emergencies", async (req, res) => {
     }
 });
 
-// Return the AVAILABLE vehicles of the type this emergency needs
-// (ambulance, fire truck, police vehicle or rescue team), nearest first.
-// Routes come from the C++ Dijkstra module.
 async function rankResources(req, res) {
     const emergencyId = Number(req.query.emergencyId);
 
@@ -216,20 +207,11 @@ async function rankResources(req, res) {
 
     try {
         const state = await bridgeRequest("STATE");
+        if (!state.success) return res.status(503).json(state);
 
-        if (!state.success) {
-            return res.status(503).json(state);
-        }
-
-        const emergency = state.emergencies.find(
-            item => Number(item.id) === emergencyId
-        );
-
+        const emergency = state.emergencies.find(item => Number(item.id) === emergencyId);
         if (!emergency) {
-            return res.status(404).json({
-                success: false,
-                error: "Emergency not found"
-            });
+            return res.status(404).json({ success: false, error: "Emergency not found" });
         }
 
         const requiredResource = emergency.requiredResource || "Ambulance";
@@ -255,18 +237,16 @@ async function rankResources(req, res) {
             return a.route.distance - b.route.distance;
         });
 
-        // Only medical/accident calls need a hospital leg.
-        const hospitalRoute =
-            requiredResource === "Ambulance"
-                ? await routeBetween(emergency.location, "Hospital")
-                : null;
+        const hospitalRoute = requiredResource === "Ambulance"
+            ? await routeBetween(emergency.location, "Hospital")
+            : null;
 
         res.json({
             success: true,
             emergencyId,
             requiredResource,
             resources,
-            ambulances: resources,   // older name, kept for compatibility
+            ambulances: resources,
             hospitalRoute
         });
     } catch (error) {
@@ -276,23 +256,17 @@ async function rankResources(req, res) {
 
 app.get(["/api/resources/ranked", "/api/ambulances/ranked"], rankResources);
 
-// Dispatch the vehicle the dashboard selected. If no ambulanceId is sent,
-// the C++ bridge falls back to the first available suitable resource.
 app.post("/api/dispatch", async (req, res) => {
     const emergencyId = Number(req.body.emergencyId);
     const ambulanceId = Number(req.body.ambulanceId);
 
     if (!Number.isInteger(emergencyId) || emergencyId <= 0) {
-        return res.status(400).json({
-            success: false,
-            error: "A valid emergencyId is required"
-        });
+        return res.status(400).json({ success: false, error: "A valid emergencyId is required" });
     }
 
-    const command =
-        Number.isInteger(ambulanceId) && ambulanceId > 0
-            ? `DISPATCH\t${emergencyId}\t${ambulanceId}`
-            : `DISPATCH\t${emergencyId}`;
+    const command = Number.isInteger(ambulanceId) && ambulanceId > 0
+        ? `DISPATCH\t${emergencyId}\t${ambulanceId}`
+        : `DISPATCH\t${emergencyId}`;
 
     try {
         const result = await bridgeRequest(command);
@@ -302,15 +276,11 @@ app.post("/api/dispatch", async (req, res) => {
     }
 });
 
-// Close an emergency and free the vehicle that was handling it.
 app.post("/api/emergencies/resolve", async (req, res) => {
     const emergencyId = Number(req.body.emergencyId);
 
     if (!Number.isInteger(emergencyId) || emergencyId <= 0) {
-        return res.status(400).json({
-            success: false,
-            error: "A valid emergencyId is required"
-        });
+        return res.status(400).json({ success: false, error: "A valid emergencyId is required" });
     }
 
     try {
@@ -325,10 +295,7 @@ app.post("/api/resources/release", async (req, res) => {
     const resourceId = Number(req.body.resourceId);
 
     if (!Number.isInteger(resourceId) || resourceId <= 0) {
-        return res.status(400).json({
-            success: false,
-            error: "A valid resourceId is required"
-        });
+        return res.status(400).json({ success: false, error: "A valid resourceId is required" });
     }
 
     try {
@@ -340,15 +307,9 @@ app.post("/api/resources/release", async (req, res) => {
 });
 
 app.use("/api", (req, res) => {
-    res.status(404).json({
-        success: false,
-        error: "API endpoint not implemented",
-        path: req.originalUrl
-    });
+    res.status(404).json({ success: false, error: "API endpoint not found", path: req.originalUrl });
 });
 
 app.listen(PORT, "127.0.0.1", () => {
-    console.log(`Dashboard: http://127.0.0.1:${PORT}/`);
-    console.log(`Health:    http://127.0.0.1:${PORT}/api/health`);
-    console.log(`State:     http://127.0.0.1:${PORT}/api/state`);
+    console.log(`Smart Emergency Dashboard: http://127.0.0.1:${PORT}/`);
 });

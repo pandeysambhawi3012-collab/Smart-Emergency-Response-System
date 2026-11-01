@@ -21,9 +21,6 @@
 
 using namespace std;
 
-// Calculate a route automatically from the allocated resource to the emergency.
-// Select the closest AVAILABLE resource of the required type.
-// Resources without a valid route are ignored.
 Resource* findNearestAvailableResource(ResourceManager& resourceManager,
                                       Graph& cityGraph,
                                       ResourceType requiredType,
