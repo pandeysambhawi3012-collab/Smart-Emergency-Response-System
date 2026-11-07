@@ -114,6 +114,20 @@ function updateLiveSeverityPreview() {
     const badge = document.getElementById("liveSeverityScore");
     const breakdown = document.getElementById("severityBreakdownText");
 
+    // Dynamic Sizing Note
+    let vehicleDemandText = "🚑 Small Ambulance (1–2 patients)";
+    if (type === "Accident" || type === "Medical") {
+        if (people > 2) {
+            vehicleDemandText = "🚐 Large Ambulance (Mass Casualty, 3+ patients)";
+        }
+    } else if (type === "Fire") {
+        vehicleDemandText = "🚒 Fire Truck";
+    } else if (type === "Crime") {
+        vehicleDemandText = "🚓 Police Patrol";
+    } else if (type === "Natural Disaster") {
+        vehicleDemandText = "🛟 Rescue Team";
+    }
+
     if (badge) {
         badge.textContent = `${total} / 100 (${level})`;
         if (level === "Critical") badge.style.color = "#dc2626";
@@ -123,7 +137,10 @@ function updateLiveSeverityPreview() {
     }
 
     if (breakdown) {
-        breakdown.textContent = `People: ${pScore} + Injury: ${iScore} + Risk: ${rScore} + Type: ${tScore}`;
+        breakdown.innerHTML = `
+            <span>Score: ${pScore} (People) + ${iScore} (Injury) + ${rScore} (Risk) + ${tScore} (Type)</span><br>
+            <strong style="color:#166534;">Target Resource: ${vehicleDemandText}</strong>
+        `;
     }
 }
 
@@ -468,12 +485,13 @@ async function refreshBackendRanking(emergencyId) {
             const pathText = r.route && r.route.reachable ? r.route.path.join(" → ") : "No reachable path";
             const distText = r.route && r.route.reachable ? `${r.route.distance} km` : "Unreachable";
 
-            card.innerHTML = `
+                       card.innerHTML = `
                 <div class="ambulance-top">
                     <strong>${resourceIcon(r.type)} ${r.id}</strong>
                     <span class="status available">Available</span>
                 </div>
-                <div class="ambulance-location">${r.type} — 📍 ${r.location}</div>
+                <div class="ambulance-location">${r.type} (Cap: ${r.capacity || 2}) — 📍 ${r.location}</div>
+                ${r.isFallback ? `<div style="font-size:11px; color:#b45309; font-weight:bold;">⚡ High-Capacity Backup Assignment</div>` : ""}
                 <div style="margin-top:8px; font-size:12px; color:#15803d; font-weight:bold;">
                     ${idx === 0 ? "⭐ Shortest Route: " : "Route Distance: "} ${distText}
                 </div>
@@ -481,7 +499,6 @@ async function refreshBackendRanking(emergencyId) {
                     ${pathText}
                 </div>
             `;
-
             card.addEventListener("click", () => {
                 apiSelectedVehicleId = r.id;
                 refreshBackendRanking(emergencyId);
@@ -518,6 +535,18 @@ async function refreshBackendRanking(emergencyId) {
     } catch (error) {
         console.error("C++ Dijkstra route ranking error:", error);
     }
+            // Display Shared Corridor Optimization Banner if detected
+        const msg = document.getElementById("dispatchMessage");
+        if (result.sharedCorridor && result.sharedCorridor.detected) {
+            if (msg) {
+                msg.innerHTML = `
+                    <div style="background:#eff6ff; border:1px solid #bfdbfe; padding:10px 14px; border-radius:8px; margin-bottom:8px;">
+                        <span style="color:#1d4ed8; font-weight:800; font-size:12px; display:block;">🛣️ SHARED CORRIDOR OPTIMIZATION ACTIVATED</span>
+                        <span style="color:#1e3a8a; font-size:12px;">${result.sharedCorridor.reason}</span>
+                    </div>
+                `;
+            }
+        }
 }
 
 async function handleSortByDistanceClick() {
@@ -813,3 +842,15 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
+// Updated Resource Icons (Small Ambulance vs Large Ambulance)
+const RESOURCE_ICONS = {
+    "Small Ambulance": "🚑",
+    "Large Ambulance": "🚐", // High capacity / mass casualty
+    "Fire Truck": "🚒",
+    "Police Vehicle": "🚓",
+    "Rescue Team": "🛟"
+};
+
+function resourceIcon(type) {
+    return RESOURCE_ICONS[type] || "🚨";
+}

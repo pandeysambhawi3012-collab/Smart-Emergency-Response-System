@@ -214,9 +214,50 @@ async function rankResources(req, res) {
             return res.status(404).json({ success: false, error: "Emergency not found" });
         }
 
-        const requiredResource = emergency.requiredResource || "Ambulance";
+        let requiredResource = emergency.requiredResource || "Small Ambulance";
+        let sharedCorridorInfo = null;
+
+        // ============================================================
+        // SHARED CORRIDOR DETECTION ALGORITHM (Dijkstra Path Traversal)
+        // ============================================================
+        const isAmbulanceEmergency = 
+            requiredResource.includes("Ambulance") || 
+            emergency.type === "Accident" || 
+            emergency.type === "Medical";
+
+        if (isAmbulanceEmergency) {
+            // Find other pending accident/medical emergencies
+            const otherPending = state.emergencies.filter(e => 
+                (e.status === "Pending" || e.status === "Reported") && 
+                Number(e.id) !== emergencyId &&
+                (e.type === "Accident" || e.type === "Medical")
+            );
+
+            for (const other of otherPending) {
+                // Compute path from hospital to the other incident
+                const routeToOther = await routeBetween("Hospital", other.location);
+                const routeBetweenIncidents = await routeBetween(emergency.location, other.location);
+
+                // If path to other incident passes through this incident, or distance between them is close (<= 6km)
+                const onSamePath = routeToOther.reachable && routeToOther.path.includes(emergency.location);
+                const isNearby = routeBetweenIncidents.reachable && routeBetweenIncidents.distance <= 6;
+
+                if (onSamePath || isNearby) {
+                    requiredResource = "Large Ambulance"; // Upgrade to Large Ambulance
+                    sharedCorridorInfo = {
+                        detected: true,
+                        pairedIncidentId: other.id,
+                        pairedLocation: other.location,
+                        reason: `Shared route corridor detected with Incident #${other.id} at ${other.location}. Upgraded to Large Ambulance for combined multi-patient response.`
+                    };
+                    break;
+                }
+            }
+        }
+
         const resources = [];
 
+        // 1. Gather primary candidates
         for (const item of state.resources) {
             if (item.type !== requiredResource) continue;
             if (item.status !== "Available") continue;
@@ -226,10 +267,29 @@ async function rankResources(req, res) {
                 type: item.type,
                 location: item.location,
                 status: item.status,
+                capacity: item.capacity || (item.type.includes("Large") ? 6 : 2),
                 route: await routeBetween(item.location, emergency.location)
             });
         }
 
+        // 2. Fallback: If 0 Small Ambulances are available, offer available Large Ambulances
+        if (resources.length === 0 && requiredResource === "Small Ambulance") {
+            for (const item of state.resources) {
+                if (item.type === "Large Ambulance" && item.status === "Available") {
+                    resources.push({
+                        id: item.id,
+                        type: item.type,
+                        location: item.location,
+                        status: item.status,
+                        capacity: item.capacity || 6,
+                        isFallback: true,
+                        route: await routeBetween(item.location, emergency.location)
+                    });
+                }
+            }
+        }
+
+        // Sort candidates nearest to farthest by Dijkstra distance
         resources.sort((a, b) => {
             if (!a.route.reachable && !b.route.reachable) return 0;
             if (!a.route.reachable) return 1;
@@ -237,14 +297,13 @@ async function rankResources(req, res) {
             return a.route.distance - b.route.distance;
         });
 
-        const hospitalRoute = requiredResource === "Ambulance"
-            ? await routeBetween(emergency.location, "Hospital")
-            : null;
+        const hospitalRoute = await routeBetween(emergency.location, "Hospital");
 
         res.json({
             success: true,
             emergencyId,
             requiredResource,
+            sharedCorridor: sharedCorridorInfo,
             resources,
             ambulances: resources,
             hospitalRoute

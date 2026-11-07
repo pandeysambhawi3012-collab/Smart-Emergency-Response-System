@@ -119,11 +119,12 @@ string emergencyStatusName(EmergencyStatus status) {
 
 string resourceTypeName(ResourceType type) {
     switch (type) {
-        case ResourceType::Ambulance:     return "Ambulance";
-        case ResourceType::FireTruck:     return "Fire Truck";
-        case ResourceType::PoliceVehicle: return "Police Vehicle";
-        case ResourceType::RescueTeam:    return "Rescue Team";
-        default:                          return "Unknown";
+        case ResourceType::SmallAmbulance: return "Small Ambulance";
+        case ResourceType::LargeAmbulance: return "Large Ambulance";
+        case ResourceType::FireTruck:      return "Fire Truck";
+        case ResourceType::PoliceVehicle:  return "Police Vehicle";
+        case ResourceType::RescueTeam:     return "Rescue Team";
+        default:                           return "Unknown";
     }
 }
 
@@ -132,8 +133,12 @@ string resourceStatusName(ResourceStatus status) {
 }
 
 bool parseResourceType(const string& name, ResourceType& type) {
-    if (name == "Ambulance") {
-        type = ResourceType::Ambulance;
+    if (name == "Small Ambulance") {
+        type = ResourceType::SmallAmbulance;
+    } else if (name == "Large Ambulance") {
+        type = ResourceType::LargeAmbulance;
+    } else if (name == "Ambulance") { // Backwards compatibility
+        type = ResourceType::SmallAmbulance;
     } else if (name == "Fire Truck") {
         type = ResourceType::FireTruck;
     } else if (name == "Police Vehicle") {
@@ -143,7 +148,6 @@ bool parseResourceType(const string& name, ResourceType& type) {
     } else {
         return false;
     }
-
     return true;
 }
 
@@ -184,28 +188,31 @@ int main() {
 
     map<int, int> assignments;
 
-    {
+    {   
+        
         QuietOutput quiet;
 
+                // Initial resource inventory with Small and Large Ambulances
         resourceManager.addResource(Resource(
-            101, ResourceType::Ambulance,
-            "Hospital", ResourceStatus::Available));
+            101, ResourceType::SmallAmbulance, "Hospital", ResourceStatus::Available, 2));
 
         resourceManager.addResource(Resource(
-            102, ResourceType::Ambulance,
-            "ISBT", ResourceStatus::Available));
+            102, ResourceType::LargeAmbulance, "ISBT", ResourceStatus::Available, 6));
 
         resourceManager.addResource(Resource(
-            201, ResourceType::FireTruck,
-            "Fire Station", ResourceStatus::Available));
+            103, ResourceType::SmallAmbulance, "Clock Tower", ResourceStatus::Available, 2));
 
         resourceManager.addResource(Resource(
-            301, ResourceType::PoliceVehicle,
-            "Police Station", ResourceStatus::Available));
+            104, ResourceType::LargeAmbulance, "Hospital", ResourceStatus::Available, 6));
 
         resourceManager.addResource(Resource(
-            401, ResourceType::RescueTeam,
-            "Rescue Center", ResourceStatus::Available));
+            201, ResourceType::FireTruck, "Fire Station", ResourceStatus::Available, 4));
+
+        resourceManager.addResource(Resource(
+            301, ResourceType::PoliceVehicle, "Police Station", ResourceStatus::Available, 4));
+
+        resourceManager.addResource(Resource(
+            401, ResourceType::RescueTeam, "Rescue Center", ResourceStatus::Available, 8));
 
         graph.addLocation("ISBT");
         graph.addLocation("Clock Tower");
@@ -246,7 +253,15 @@ int main() {
 
             cout << "{\"success\":true,\"backendConnected\":true,"
                  << "\"emergencies\":[";
-
+            cout << "{\"id\":\"" << r.getResourceId()
+                 << "\",\"type\":\""
+                 << jsonEscape(resourceTypeName(r.getType()))
+                 << "\",\"location\":\""
+                 << jsonEscape(r.getLocation())
+                 << "\",\"status\":\""
+                 << resourceStatusName(r.getStatus())
+                 << "\",\"capacity\":" << r.getCapacity()
+                 << "}";
             for (size_t i = 0; i < emergencies.size(); ++i) {
                 if (i) cout << ",";
 

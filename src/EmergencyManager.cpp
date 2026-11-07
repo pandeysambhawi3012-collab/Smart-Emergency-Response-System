@@ -349,6 +349,52 @@ Emergency EmergencyManager::registerEmergencyFromAPI(
 ) {
     string requiredResource;
 
+    // Dynamic Sizing Rule:
+    switch (type) {
+        case EmergencyType::Accident:
+        case EmergencyType::Medical:
+            if (peopleAffected > 2) {
+                requiredResource = "Large Ambulance"; // Mass casualty / multi-patient
+            } else {
+                requiredResource = "Small Ambulance"; // Standard 1-2 patient ambulance
+            }
+            break;
+
+        case EmergencyType::Fire:
+            requiredResource = "Fire Truck";
+            break;
+
+        case EmergencyType::NaturalDisaster:
+            requiredResource = "Rescue Team";
+            break;
+
+        case EmergencyType::Crime:
+            requiredResource = "Police Vehicle";
+            break;
+
+        default:
+            requiredResource = (peopleAffected > 2) ? "Large Ambulance" : "Small Ambulance";
+            break;
+    }
+
+    Emergency emergency(
+        id, type, location, peopleAffected,
+        injurySeverity, riskLevel, timeReported,
+        requiredResource
+    );
+
+    int score = SeverityCalculator::calculateScore(emergency);
+    string level = SeverityCalculator::classifySeverity(score);
+
+    emergency.setSeverityScore(score);
+    emergency.setSeverityLevel(level);
+    emergency.setPriority(level);
+
+    emergencies.push_back(emergency);
+    return emergency;
+} {
+    string requiredResource;
+
     switch (type) {
         case EmergencyType::Accident:
         case EmergencyType::Medical:
