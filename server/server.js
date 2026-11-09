@@ -195,6 +195,8 @@ app.post("/api/emergencies", async (req, res) => {
     }
 });
 
+// Return the AVAILABLE vehicles of the type this emergency needs, nearest first.
+// Routes come from the C++ Dijkstra module.
 async function rankResources(req, res) {
     const emergencyId = Number(req.query.emergencyId);
 
@@ -207,97 +209,145 @@ async function rankResources(req, res) {
 
     try {
         const state = await bridgeRequest("STATE");
-        if (!state.success) return res.status(503).json(state);
 
-        const emergency = state.emergencies.find(item => Number(item.id) === emergencyId);
-        if (!emergency) {
-            return res.status(404).json({ success: false, error: "Emergency not found" });
+        if (!state.success) {
+            return res.status(503).json(state);
         }
 
+        const emergency = state.emergencies.find(
+            item => Number(item.id) === emergencyId
+        );
+
+        if (!emergency) {
+            return res.status(404).json({
+                success: false,
+                error: "Emergency not found"
+            });
+        }
+
+        // Determine baseline requirement
         let requiredResource = emergency.requiredResource || "Small Ambulance";
         let sharedCorridorInfo = null;
 
         // ============================================================
-        // SHARED CORRIDOR DETECTION ALGORITHM (Dijkstra Path Traversal)
+        // 1. DYNAMIC CAPACITY & SHARED CORRIDOR DETECTION
         // ============================================================
-        const isAmbulanceEmergency = 
-            requiredResource.includes("Ambulance") || 
-            emergency.type === "Accident" || 
+        const isAmbulanceEmergency =
+            requiredResource.includes("Ambulance") ||
+            emergency.type === "Accident" ||
             emergency.type === "Medical";
 
         if (isAmbulanceEmergency) {
-            // Find other pending accident/medical emergencies
-            const otherPending = state.emergencies.filter(e => 
-                (e.status === "Pending" || e.status === "Reported") && 
+            // More than 2 people -> Demand Large Ambulance
+            if (Number(emergency.peopleAffected) > 2) {
+                requiredResource = "Large Ambulance";
+            }
+
+            // Check if other pending incidents share the same corridor (<= 6 km)
+            const otherPending = (state.emergencies || []).filter(e =>
+                (e.status === "Pending" || e.status === "Reported") &&
                 Number(e.id) !== emergencyId &&
-                (e.type === "Accident" || e.type === "Medical")
+                (e.type === "Accident" || e.type === "Medical" || (e.requiredResource && e.requiredResource.includes("Ambulance")))
             );
 
             for (const other of otherPending) {
-                // Compute path from hospital to the other incident
-                const routeToOther = await routeBetween("Hospital", other.location);
                 const routeBetweenIncidents = await routeBetween(emergency.location, other.location);
+                const isNearby = emergency.location === other.location ||
+                    (routeBetweenIncidents.reachable && routeBetweenIncidents.distance <= 6);
 
-                // If path to other incident passes through this incident, or distance between them is close (<= 6km)
-                const onSamePath = routeToOther.reachable && routeToOther.path.includes(emergency.location);
-                const isNearby = routeBetweenIncidents.reachable && routeBetweenIncidents.distance <= 6;
-
-                if (onSamePath || isNearby) {
-                    requiredResource = "Large Ambulance"; // Upgrade to Large Ambulance
+                if (isNearby) {
+                    requiredResource = "Large Ambulance";
                     sharedCorridorInfo = {
                         detected: true,
                         pairedIncidentId: other.id,
                         pairedLocation: other.location,
-                        reason: `Shared route corridor detected with Incident #${other.id} at ${other.location}. Upgraded to Large Ambulance for combined multi-patient response.`
+                        reason: `Shared corridor detected with Incident #${other.id} at ${other.location}. Upgraded to Large Ambulance for combined response.`
                     };
                     break;
                 }
             }
         }
 
+        // ============================================================
+        // 2. RESOURCE MATCHING & FLEET FALLBACK
+        // ============================================================
         const resources = [];
+        const availableFleet = (state.resources || []).filter(r => r.status === "Available");
 
-        // 1. Gather primary candidates
-        for (const item of state.resources) {
-            if (item.type !== requiredResource) continue;
-            if (item.status !== "Available") continue;
+        if (isAmbulanceEmergency) {
+            // Include all available ambulances (Large, Small, or standard Ambulance)
+            const availableAmbulances = availableFleet.filter(r =>
+                r.type.includes("Ambulance")
+            );
 
-            resources.push({
-                id: item.id,
-                type: item.type,
-                location: item.location,
-                status: item.status,
-                capacity: item.capacity || (item.type.includes("Large") ? 6 : 2),
-                route: await routeBetween(item.location, emergency.location)
-            });
-        }
+            for (const item of availableAmbulances) {
+                let isExactMatch = false;
+                let isFallback = false;
 
-        // 2. Fallback: If 0 Small Ambulances are available, offer available Large Ambulances
-        if (resources.length === 0 && requiredResource === "Small Ambulance") {
-            for (const item of state.resources) {
-                if (item.type === "Large Ambulance" && item.status === "Available") {
-                    resources.push({
-                        id: item.id,
-                        type: item.type,
-                        location: item.location,
-                        status: item.status,
-                        capacity: item.capacity || 6,
-                        isFallback: true,
-                        route: await routeBetween(item.location, emergency.location)
-                    });
+                if (requiredResource === "Large Ambulance") {
+                    if (item.type === "Large Ambulance") {
+                        isExactMatch = true;
+                    } else {
+                        // Standard Ambulance or Small Ambulance serves as backup
+                        isFallback = true;
+                    }
+                } else if (requiredResource === "Small Ambulance") {
+                    if (item.type === "Small Ambulance" || item.type === "Ambulance") {
+                        isExactMatch = true;
+                    } else {
+                        isFallback = true;
+                    }
+                } else {
+                    isExactMatch = true;
                 }
+
+                const capacity = item.capacity || (item.type.includes("Large") ? 6 : (item.type.includes("Small") ? 2 : 4));
+
+                resources.push({
+                    id: item.id,
+                    type: item.type,
+                    location: item.location,
+                    status: item.status,
+                    capacity: capacity,
+                    isExactMatch: isExactMatch,
+                    isFallback: isFallback,
+                    route: await routeBetween(item.location, emergency.location)
+                });
+            }
+        } else {
+            // Other emergency types (Fire Truck, Police, Rescue Team)
+            for (const item of availableFleet) {
+                if (item.type !== requiredResource) continue;
+
+                resources.push({
+                    id: item.id,
+                    type: item.type,
+                    location: item.location,
+                    status: item.status,
+                    capacity: item.capacity || 4,
+                    isExactMatch: true,
+                    isFallback: false,
+                    route: await routeBetween(item.location, emergency.location)
+                });
             }
         }
 
-        // Sort candidates nearest to farthest by Dijkstra distance
+        // Sort candidates:
+        // 1. Exact capacity matches first, then backups
+        // 2. Shortest Dijkstra distance first
         resources.sort((a, b) => {
+            if (a.isExactMatch && !b.isExactMatch) return -1;
+            if (!a.isExactMatch && b.isExactMatch) return 1;
             if (!a.route.reachable && !b.route.reachable) return 0;
             if (!a.route.reachable) return 1;
             if (!b.route.reachable) return -1;
             return a.route.distance - b.route.distance;
         });
 
-        const hospitalRoute = await routeBetween(emergency.location, "Hospital");
+        // Hospital leg for accident/medical incidents
+        const hospitalRoute = isAmbulanceEmergency
+            ? await routeBetween(emergency.location, "Hospital")
+            : null;
 
         res.json({
             success: true,

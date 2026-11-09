@@ -1,11 +1,11 @@
 // ============================================================
 // SMART EMERGENCY RESPONSE SYSTEM - CLIENT APPLICATION
-// Authoritative Frontend synchronized with C++ Backend API
+// Complete Phase 3 Build (Capacity Allocation + Shared Corridor)
 // ============================================================
 
 const SAFEROUTE_API = "/api";
 
-// Core application state - populated directly from C++
+// Core application state
 let vehicles = [];
 let emergencies = [];
 let apiEmergencyId = null;
@@ -15,7 +15,8 @@ let apiAvailable = false;
 
 // Resource Type Emoji Helper
 const RESOURCE_ICONS = {
-    "Ambulance": "🚑",
+    "Small Ambulance": "🚑",
+    "Large Ambulance": "🚐",
     "Fire Truck": "🚒",
     "Police Vehicle": "🚓",
     "Rescue Team": "🛟"
@@ -26,41 +27,36 @@ function resourceIcon(type) {
 }
 
 // ============================================================
-// FRONTEND SEVERITY CALCULATOR
-// Exact replica of C++ SeverityCalculator.cpp logic
+// FRONTEND SEVERITY CALCULATOR (C++ Formula Replica)
 // ============================================================
 const SeverityCalculator = {
-    // Factor 1: People Affected Score (Max: 30)
     calculatePeopleScore(people) {
         if (people <= 0) return 0;
         if (people === 1) return 5;
         if (people <= 3) return 10;
         if (people <= 6) return 15;
         if (people <= 10) return 20;
-        return 30; // > 10 people
+        return 30;
     },
 
-    // Factor 2: Injury Severity Score (Max: 25)
     calculateInjuryScore(injury) {
         if (injury <= 0) return 0;
         if (injury <= 2) return 5;
         if (injury <= 4) return 10;
         if (injury <= 6) return 15;
         if (injury <= 8) return 20;
-        return 25; // 9 or 10
+        return 25;
     },
 
-    // Factor 3: Risk Level Score (Max: 25)
     calculateRiskScore(risk) {
         if (risk <= 0) return 0;
         if (risk <= 2) return 5;
         if (risk <= 4) return 10;
         if (risk <= 6) return 15;
         if (risk <= 8) return 20;
-        return 25; // 9 or 10
+        return 25;
     },
 
-    // Factor 4: Emergency Type Score (Max: 20)
     calculateTypeScore(type) {
         const cleanType = (type || "").trim();
         switch (cleanType) {
@@ -74,11 +70,10 @@ const SeverityCalculator = {
             case "Crime":
                 return 15;
             default:
-                return 10; // Other
+                return 10;
         }
     },
 
-    // Composite Total: 0 to 100 Points
     calculateScore(people, injury, risk, type) {
         return (
             this.calculatePeopleScore(people) +
@@ -88,7 +83,6 @@ const SeverityCalculator = {
         );
     },
 
-    // Severity Classification: Low, Medium, High, Critical
     classifySeverity(score) {
         if (score <= 30) return "Low";
         if (score <= 60) return "Medium";
@@ -114,7 +108,6 @@ function updateLiveSeverityPreview() {
     const badge = document.getElementById("liveSeverityScore");
     const breakdown = document.getElementById("severityBreakdownText");
 
-    // Dynamic Sizing Note
     let vehicleDemandText = "🚑 Small Ambulance (1–2 patients)";
     if (type === "Accident" || type === "Medical") {
         if (people > 2) {
@@ -139,7 +132,7 @@ function updateLiveSeverityPreview() {
     if (breakdown) {
         breakdown.innerHTML = `
             <span>Score: ${pScore} (People) + ${iScore} (Injury) + ${rScore} (Risk) + ${tScore} (Type)</span><br>
-            <strong style="color:#166534;">Target Resource: ${vehicleDemandText}</strong>
+            <strong style="color:#166534;">Required: ${vehicleDemandText}</strong>
         `;
     }
 }
@@ -164,33 +157,42 @@ function normalizeEmergencyId(raw) {
 }
 
 // ============================================================
-// DASHBOARD NAVIGATION
+// DASHBOARD NAVIGATION (Bulletproof Transition)
 // ============================================================
 
 function openDashboard() {
     const welcome = document.getElementById("welcomeScreen");
     const dashboard = document.getElementById("dashboard");
 
-    welcome.style.opacity = "0";
-
-    setTimeout(async () => {
+    // Immediate transition so it never gets stuck
+    if (welcome) {
         welcome.classList.add("hidden");
+        welcome.style.display = "none";
+    }
+    if (dashboard) {
         dashboard.classList.remove("hidden");
+        dashboard.style.display = "block";
+    }
 
-        await loadBackendState();
-    }, 350);
+    // Load backend data without blocking the UI
+    loadBackendState().catch(err => {
+        console.error("Backend state error on load:", err);
+    });
 }
 
 function returnHome() {
     const welcome = document.getElementById("welcomeScreen");
     const dashboard = document.getElementById("dashboard");
 
-    dashboard.classList.add("hidden");
-    welcome.classList.remove("hidden");
-
-    setTimeout(() => {
+    if (dashboard) {
+        dashboard.classList.add("hidden");
+        dashboard.style.display = "none";
+    }
+    if (welcome) {
+        welcome.classList.remove("hidden");
+        welcome.style.display = "flex";
         welcome.style.opacity = "1";
-    }, 50);
+    }
 }
 
 // ============================================================
@@ -205,7 +207,6 @@ async function loadBackendState() {
 
         vehicles = state.resources || [];
 
-        // Exclude resolved emergencies from the active queue
         emergencies = (state.emergencies || []).filter(e => e.status !== "Resolved").map(e => ({
             id: String(e.id),
             type: e.type,
@@ -217,7 +218,6 @@ async function loadBackendState() {
             assignedResourceId: e.assignedResourceId
         }));
 
-        // Query C++ Heap Priority Queue order
         try {
             const q = await saferouteApi("/queue");
             if (q && Array.isArray(q.queue)) {
@@ -237,7 +237,6 @@ async function loadBackendState() {
         renderPriorityQueue();
         updateDashboardStats();
 
-        // Determine active pending emergency
         const pendingEmergencies = emergencies.filter(e => e.status === "Pending" || e.status === "Reported");
         if (pendingEmergencies.length > 0) {
             if (!apiEmergencyId || !pendingEmergencies.some(e => Number(e.id) === apiEmergencyId)) {
@@ -284,10 +283,6 @@ function setConnectionStatus(online) {
     }
 }
 
-// ============================================================
-// STATS CARD RENDERING
-// ============================================================
-
 function updateDashboardStats() {
     const emergencyCount = document.getElementById("emergencyCount");
     const availableCount = document.getElementById("availableCount");
@@ -312,25 +307,19 @@ function updateDashboardStats() {
 }
 
 // ============================================================
-// EMERGENCY REGISTRATION (Sends Calculated Metrics to C++)
+// EMERGENCY REGISTRATION
 // ============================================================
 
 async function registerEmergency() {
-    const rawId = document.getElementById("emergencyId").value.trim();
+    const rawId = document.getElementById("emergencyId")?.value.trim() || "";
     const id = normalizeEmergencyId(rawId);
-    const type = document.getElementById("emergencyType").value;
-    const location = document.getElementById("emergencyLocation").value;
+    const type = document.getElementById("emergencyType")?.value || "Accident";
+    const location = document.getElementById("emergencyLocation")?.value || "Clock Tower";
 
     const peopleAffected = parseInt(document.getElementById("peopleAffected")?.value || "1", 10);
     const injurySeverity = parseInt(document.getElementById("injurySeverity")?.value || "5", 10);
     const riskLevel = parseInt(document.getElementById("riskLevel")?.value || "5", 10);
 
-    if (isNaN(peopleAffected) || peopleAffected < 1) {
-        alert("Please enter a valid number for people affected (at least 1).");
-        return;
-    }
-
-    // Calculate severity in frontend using identical C++ formula
     const calculatedScore = SeverityCalculator.calculateScore(peopleAffected, injurySeverity, riskLevel, type);
     const calculatedLevel = SeverityCalculator.classifySeverity(calculatedScore);
 
@@ -339,8 +328,8 @@ async function registerEmergency() {
         type: type,
         location: location,
         peopleAffected: peopleAffected,
-        injurySeverity: isNaN(injurySeverity) ? 5 : injurySeverity,
-        riskLevel: isNaN(riskLevel) ? 5 : riskLevel,
+        injurySeverity: injurySeverity,
+        riskLevel: riskLevel,
         severity: calculatedScore,
         severityLevel: calculatedLevel,
         timeReported: new Date().toLocaleTimeString()
@@ -352,7 +341,8 @@ async function registerEmergency() {
             body: JSON.stringify(payload)
         });
 
-        document.getElementById("emergencyId").value = "";
+        const idInput = document.getElementById("emergencyId");
+        if (idInput) idInput.value = "";
         apiEmergencyId = result.emergency ? result.emergency.id : id;
 
         await loadBackendState();
@@ -444,7 +434,7 @@ function renderAllVehiclesFleet() {
                 <strong>${resourceIcon(v.type)} ${v.id}</strong>
                 <span class="status ${statusClass}">${v.status}</span>
             </div>
-            <div class="ambulance-location">${v.type} — 📍 ${v.location}</div>
+            <div class="ambulance-location">${v.type} (Cap: ${v.capacity || 2}) — 📍 ${v.location}</div>
         `;
         container.appendChild(card);
     });
@@ -455,12 +445,25 @@ async function refreshBackendRanking(emergencyId) {
 
     try {
         const result = await saferouteApi(`/resources/ranked?emergencyId=${encodeURIComponent(emergencyId)}`);
-        const required = result.requiredResource || "Ambulance";
+        const required = result.requiredResource || "Small Ambulance";
         apiHospitalRoute = result.hospitalRoute;
 
         const container = document.getElementById("ambulanceList");
         if (!container) return;
         container.innerHTML = "";
+
+        // Shared Corridor Banner
+        const msg = document.getElementById("dispatchMessage");
+        if (result.sharedCorridor && result.sharedCorridor.detected) {
+            if (msg) {
+                msg.innerHTML = `
+                    <div style="background:#eff6ff; border:1px solid #bfdbfe; padding:10px 14px; border-radius:8px; margin-bottom:8px;">
+                        <span style="color:#1d4ed8; font-weight:800; font-size:12px; display:block;">🛣️ SHARED CORRIDOR OPTIMIZATION ACTIVATED</span>
+                        <span style="color:#1e3a8a; font-size:12px;">${result.sharedCorridor.reason}</span>
+                    </div>
+                `;
+            }
+        }
 
         const candidateResources = result.resources || [];
 
@@ -485,7 +488,7 @@ async function refreshBackendRanking(emergencyId) {
             const pathText = r.route && r.route.reachable ? r.route.path.join(" → ") : "No reachable path";
             const distText = r.route && r.route.reachable ? `${r.route.distance} km` : "Unreachable";
 
-                       card.innerHTML = `
+            card.innerHTML = `
                 <div class="ambulance-top">
                     <strong>${resourceIcon(r.type)} ${r.id}</strong>
                     <span class="status available">Available</span>
@@ -499,12 +502,13 @@ async function refreshBackendRanking(emergencyId) {
                     ${pathText}
                 </div>
             `;
+
             card.addEventListener("click", () => {
                 apiSelectedVehicleId = r.id;
                 refreshBackendRanking(emergencyId);
-                const msg = document.getElementById("dispatchMessage");
-                if (msg) {
-                    msg.textContent = `${r.type} #${r.id} selected. Route distance: ${distText}. Click Dispatch to confirm.`;
+                const dispatchNotice = document.getElementById("dispatchMessage");
+                if (dispatchNotice) {
+                    dispatchNotice.textContent = `${r.type} #${r.id} selected. Route distance: ${distText}. Click Dispatch to confirm.`;
                 }
             });
 
@@ -535,18 +539,6 @@ async function refreshBackendRanking(emergencyId) {
     } catch (error) {
         console.error("C++ Dijkstra route ranking error:", error);
     }
-            // Display Shared Corridor Optimization Banner if detected
-        const msg = document.getElementById("dispatchMessage");
-        if (result.sharedCorridor && result.sharedCorridor.detected) {
-            if (msg) {
-                msg.innerHTML = `
-                    <div style="background:#eff6ff; border:1px solid #bfdbfe; padding:10px 14px; border-radius:8px; margin-bottom:8px;">
-                        <span style="color:#1d4ed8; font-weight:800; font-size:12px; display:block;">🛣️ SHARED CORRIDOR OPTIMIZATION ACTIVATED</span>
-                        <span style="color:#1e3a8a; font-size:12px;">${result.sharedCorridor.reason}</span>
-                    </div>
-                `;
-            }
-        }
 }
 
 async function handleSortByDistanceClick() {
@@ -673,7 +665,7 @@ function triggerEmergencyAlert(type) {
 }
 
 // ============================================================
-// LEAFLET MAP MODULE (OpenStreetMap + Dehradun Coordinates)
+// LEAFLET MAP MODULE
 // ============================================================
 
 let realMap = null;
@@ -775,8 +767,15 @@ async function updateRealMapRoute() {
                 style: { color: "#16a34a", weight: 5, opacity: 0.85 }
             }).addTo(realMap);
 
-            document.getElementById("realRouteTitle").textContent = `${selectedVehicle.type} #${selectedVehicle.id} (${selectedVehicle.location}) → Incident #${currentEmergency.id} (${currentEmergency.location})`;
-            document.getElementById("realRouteSummary").textContent = `Route distance: ${(route.distance / 1000).toFixed(1)} km • Est. travel time: ${Math.round(route.duration / 60)} mins`;
+            const titleEl = document.getElementById("realRouteTitle");
+            if (titleEl) {
+                titleEl.textContent = `${selectedVehicle.type} #${selectedVehicle.id} (${selectedVehicle.location}) → Incident #${currentEmergency.id} (${currentEmergency.location})`;
+            }
+
+            const summaryEl = document.getElementById("realRouteSummary");
+            if (summaryEl) {
+                summaryEl.textContent = `Route distance: ${(route.distance / 1000).toFixed(1)} km • Est. travel time: ${Math.round(route.duration / 60)} mins`;
+            }
 
             const link = document.getElementById("openGoogleMapsLink");
             if (link) {
@@ -842,15 +841,3 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
-// Updated Resource Icons (Small Ambulance vs Large Ambulance)
-const RESOURCE_ICONS = {
-    "Small Ambulance": "🚑",
-    "Large Ambulance": "🚐", // High capacity / mass casualty
-    "Fire Truck": "🚒",
-    "Police Vehicle": "🚓",
-    "Rescue Team": "🛟"
-};
-
-function resourceIcon(type) {
-    return RESOURCE_ICONS[type] || "🚨";
-}
